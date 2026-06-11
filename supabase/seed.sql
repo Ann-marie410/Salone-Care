@@ -1,5 +1,8 @@
 -- SaloneCare Phase 2: Seed data for testing
 
+-- Temporarily disable foreign key constraints for seeding
+SET session_replication_role = replica;
+
 -- ---------------------------------------------------------------------------
 -- Emergency Contacts
 -- ---------------------------------------------------------------------------
@@ -66,3 +69,6 @@ INSERT INTO prescriptions (id, doctor_id, patient_id, appointment_id, prescripti
 
 INSERT INTO prescription_medicines (id, prescription_id, medicine_id, medicine_name, dosage, frequency, duration, instructions, created_at) VALUES
   ('70000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', 'Aspirin', '100mg', 'Once daily', '7 days', 'Take in the morning with water', NOW());
+
+-- Re-enable foreign key constraints
+SET session_replication_role = DEFAULT;
