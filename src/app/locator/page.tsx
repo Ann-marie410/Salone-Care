@@ -126,7 +126,7 @@ export default function LocatorPage() {
 
       // Add hospital markers (red)
       hospitals.forEach((h) => {
-        L.circleMarker([h.latitude, h.longitude], {
+        const marker = L.circleMarker([h.latitude, h.longitude], {
           radius: 10,
           fillColor: '#ef4444',
           color: '#fff',
@@ -135,7 +135,7 @@ export default function LocatorPage() {
           fillOpacity: 0.8,
         })
           .addTo(map)
-          .bindPopup(`<div class="font-semibold">${h.name}</div><div class="text-sm">${h.address}</div><div class="text-xs text-gray-600">${h.distance} km away</div>`);
+          .bindPopup(`<div class="font-semibold">${h.name}</div><div class="text-sm">${h.address}</div><div class="text-xs text-gray-600">${h.distance} km away</div><div style="margin-top:6px"><a href="https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${h.latitude},${h.longitude}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#2563eb;color:white;padding:4px 12px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600">🗺️ Directions</a></div>`);
       });
 
       // Add pharmacy markers (green)
@@ -149,7 +149,7 @@ export default function LocatorPage() {
           fillOpacity: 0.8,
         })
           .addTo(map)
-          .bindPopup(`<div class="font-semibold">${p.name}</div><div class="text-sm">${p.address}</div><div class="text-xs text-gray-600">${p.distance} km away</div>`);
+          .bindPopup(`<div class="font-semibold">${p.name}</div><div class="text-sm">${p.address}</div><div class="text-xs text-gray-600">${p.distance} km away</div><div style="margin-top:6px"><a href="https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${p.latitude},${p.longitude}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#2563eb;color:white;padding:4px 12px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600">🗺️ Directions</a></div>`);
       });
     };
 
@@ -220,12 +220,24 @@ export default function LocatorPage() {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-3">📍 {h.address}</p>
-                    <a
-                      href={`tel:${h.phone}`}
-                      className="inline-block bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded hover:from-red-600 hover:to-red-700 transition font-semibold text-sm"
-                    >
-                      📞 {h.phone}
-                    </a>
+                    <div className="flex gap-2">
+                      <a
+                        href={`tel:${h.phone}`}
+                        className="inline-block bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded hover:from-red-600 hover:to-red-700 transition font-semibold text-sm"
+                      >
+                        📞 {h.phone}
+                      </a>
+                      {userLocation && (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${h.latitude},${h.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded hover:from-blue-600 hover:to-blue-700 transition font-semibold text-sm"
+                        >
+                          🗺️ Directions
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -256,12 +268,24 @@ export default function LocatorPage() {
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-3">📍 {p.address}</p>
-                    <a
-                      href={`tel:${p.phone}`}
-                      className="inline-block bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded hover:from-green-600 hover:to-green-700 transition font-semibold text-sm"
-                    >
-                      📞 {p.phone}
-                    </a>
+                    <div className="flex gap-2">
+                      <a
+                        href={`tel:${p.phone}`}
+                        className="inline-block bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded hover:from-green-600 hover:to-green-700 transition font-semibold text-sm"
+                      >
+                        📞 {p.phone}
+                      </a>
+                      {userLocation && (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${p.latitude},${p.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded hover:from-blue-600 hover:to-blue-700 transition font-semibold text-sm"
+                        >
+                          🗺️ Directions
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -301,6 +325,7 @@ export default function LocatorPage() {
             <li>✓ Distances are calculated in real-time based on your location</li>
             <li>✓ Click on any marker on the map for more details</li>
             <li>✓ Use your phone's call button to contact facilities directly</li>
+            <li>✓ Click "Directions" to get turn-by-turn navigation via Google Maps</li>
           </ul>
         </section>
       </div>

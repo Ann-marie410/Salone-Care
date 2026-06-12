@@ -21,16 +21,23 @@ export async function GET(request: Request) {
 
       if (error) throw error;
 
-      const hospitals = (data || []).map((h: any) => ({
-        id: h.id,
-        name: h.name,
-        address: h.description,
-        phone: h.phone,
-        latitude: 8.4949, // Freetown center as default
-        longitude: -13.2317,
-        type: 'hospital',
-        distance: calculateDistance(lat, lng, 8.4949, -13.2317),
-      }));
+      const defaultLat = 8.4949;
+      const defaultLng = -13.2317;
+
+      const hospitals = (data || []).map((h: any) => {
+        const facilityLat = h.latitude ?? defaultLat;
+        const facilityLng = h.longitude ?? defaultLng;
+        return {
+          id: h.id,
+          name: h.name,
+          address: h.description,
+          phone: h.phone,
+          latitude: facilityLat,
+          longitude: facilityLng,
+          type: 'hospital',
+          distance: calculateDistance(lat, lng, facilityLat, facilityLng),
+        };
+      });
 
       return Response.json({ data: hospitals });
     } else if (type === 'pharmacy') {

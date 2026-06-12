@@ -124,6 +124,8 @@ export interface EmergencyContact {
   phone: string;
   contact_type: string;
   description: string | null;
+  latitude: number | null;
+  longitude: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

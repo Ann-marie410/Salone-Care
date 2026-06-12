@@ -204,12 +204,15 @@ CREATE TABLE emergency_contacts (
   phone TEXT NOT NULL,
   contact_type TEXT NOT NULL,
   description TEXT,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_emergency_contacts_active ON emergency_contacts (is_active);
+CREATE INDEX idx_emergency_contacts_location ON emergency_contacts (latitude, longitude);
 
 -- ---------------------------------------------------------------------------
 -- updated_at trigger helper

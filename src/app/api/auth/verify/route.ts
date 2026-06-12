@@ -11,7 +11,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, token, type } = await request.json();
+    const { email, token, password } = await request.json();
 
     if (!email || !token) {
       return NextResponse.json(
@@ -41,17 +41,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Set the user's password (signInWithOtp doesn't set one)
+    if (password) {
+      const { error: passwordError } = await supabase.auth.admin.updateUserById(
+        data.user.id,
+        { password }
+      );
+      if (passwordError) {
+        console.error('Password update error:', passwordError);
+      }
+    }
+
     // Get user metadata
     const fullName = data.user.user_metadata?.full_name || 'User';
     const role = data.user.user_metadata?.role || 'patient';
 
-    // Create profile if it doesn't exist
-    const { data: profileData, error: profileError } = await supabase
+    // Check if profile exists (auto-trigger should have created it)
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', data.user.id)
       .single();
 
+    // Create profile if it doesn't exist (fallback)
     if (!profileData) {
       const { error: createProfileError } = await supabase
         .from('profiles')
