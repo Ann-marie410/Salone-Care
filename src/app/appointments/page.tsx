@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import Link from 'next/link';
 
-type Doctor = { id: string; specialization: string; hospital_affiliation: string };
+type Doctor = { id: string; full_name: string; specialization: string; hospital_affiliation: string };
 type Appointment = { id: string; scheduled_at: string; reason?: string; doctor_id: string };
 
 export default function AppointmentsPage() {
@@ -24,6 +24,7 @@ export default function AppointmentsPage() {
     }
 
     loadDoctors();
+    loadAppointments();
   }, []);
 
   async function loadAppointments() {
@@ -35,8 +36,6 @@ export default function AppointmentsPage() {
     const json = await res.json();
     setAppointments(json.data || []);
   }
-
-  useEffect(() => { loadAppointments(); }, []);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -110,7 +109,7 @@ export default function AppointmentsPage() {
                   <option value="">Select a doctor...</option>
                   {doctors.map((d) => (
                     <option key={d.id} value={d.id}>
-                      🏥 {d.specialization} — {d.hospital_affiliation}
+                      🏥 Dr. {d.full_name} — {d.specialization} — {d.hospital_affiliation}
                     </option>
                   ))}
                 </select>

@@ -41,7 +41,7 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         setMessage(error.message);
@@ -114,7 +114,7 @@ export default function LoginPage() {
         </button>
 
         <div className="mt-6 text-center space-y-2">
-          <p className="text-sm text-gray-600">Don't have an account? <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-semibold">Create one</Link></p>
+          <p className="text-sm text-gray-600">Don&apos;t have an account? <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-semibold">Create one</Link></p>
           <p><Link href="/" className="text-xs text-gray-500 hover:text-gray-700">← Back to home</Link></p>
         </div>
 

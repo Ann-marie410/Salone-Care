@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import supabaseAdmin from '../../lib/supabaseServer';
 
 type EmergencyContact = {
   id: string;

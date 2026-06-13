@@ -45,7 +45,7 @@ What health question can I help you with today?`,
           content: `${assistantResponse}\n\n*${disclaimer}*`,
         },
       ]);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' },

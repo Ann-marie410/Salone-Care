@@ -1,4 +1,19 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+const SYSTEM_PROMPT = `You are SaloneCare AI Health Assistant, a helpful health guidance bot for people in Sierra Leone (Salone). 
+
+Guidelines:
+- Answer the user's question directly and accurately. Do not give generic responses.
+- Provide practical, actionable health guidance based on established medical knowledge.
+- Include relevant Sierra Leone context when applicable (e.g., mention 117 for emergencies, local health resources).
+- Keep responses clear, concise, and easy to understand. Use plain language.
+- Always end with a brief disclaimer that this is not medical advice.
+- If you don't know something, say so honestly.
+- For emergencies, always advise calling 117 or visiting the nearest hospital.
+- NEVER diagnose conditions or prescribe medication. Suggest consulting a doctor for proper diagnosis.`;
 
 export async function POST(req: Request) {
   try {
@@ -9,65 +24,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'message required' }, { status: 400 });
     }
 
-    // This is a placeholder for a real AI integration (OpenAI, etc.)
-    // For now, return helpful health guidance responses
-    const responseText = generateHealthGuidance(message);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'your-gemini-api-key-here') {
+      return NextResponse.json({
+        data: {
+          response: 'AI assistant is not configured yet. Please set your GEMINI_API_KEY in .env.local.\n\nGet a free key at: https://aistudio.google.com/apikey',
+          disclaimer: '',
+        },
+      });
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const result = await model.generateContent([
+      { text: SYSTEM_PROMPT },
+      { text: `User question: ${message}` },
+    ]);
+    const responseText = result.response.text();
 
     return NextResponse.json({
       data: {
         response: responseText,
-        disclaimer: 'This is not medical advice. Please consult a doctor for diagnosis and treatment.',
+        disclaimer: '',
       },
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
-}
-
-function generateHealthGuidance(userMessage: string): string {
-  const lowerMessage = userMessage.toLowerCase();
-
-  // Simple keyword-based responses (replace with real AI)
-  if (lowerMessage.includes('fever') || lowerMessage.includes('temperature')) {
-    return `For fever management:
-- Rest and get adequate sleep
-- Stay hydrated with water, juice, or broth
-- Take over-the-counter fever reducers like paracetamol or ibuprofen as directed
-- Use cool compress if temperature is very high
-- Seek medical attention if fever persists beyond 3 days or is accompanied by severe symptoms`;
-  } else if (lowerMessage.includes('cough') || lowerMessage.includes('cold')) {
-    return `For cold and cough:
-- Stay hydrated and drink warm fluids
-- Get plenty of rest
-- Use honey to soothe throat (not for children under 1 year)
-- Use humidifier to ease congestion
-- Avoid smoking and secondhand smoke
-- See a doctor if cough lasts more than 3 weeks`;
-  } else if (lowerMessage.includes('headache')) {
-    return `For headache relief:
-- Rest in a quiet, dark room
-- Apply cold compress to neck and warm to temples
-- Stay hydrated
-- Take pain reliever as directed on package
-- Identify triggers (stress, lack of sleep, skipped meals)
-- See a doctor if headaches are frequent or severe`;
-  } else if (lowerMessage.includes('stomach') || lowerMessage.includes('abdominal')) {
-    return `For stomach issues:
-- Rest your digestive system
-- Drink clear fluids (water, broth, weak tea)
-- Eat bland foods when ready (rice, bananas, toast)
-- Avoid dairy, fatty foods, and high fiber foods temporarily
-- Try ginger or peppermint tea for relief
-- See a doctor if symptoms persist or worsen`;
-  } else {
-    return `Thank you for your health question. Here's some general guidance:
-
-1. Keep track of your symptoms and when they started
-2. Stay hydrated and get adequate rest
-3. Maintain good hygiene practices
-4. Use over-the-counter remedies as directed on packaging
-5. Seek professional medical help if symptoms persist or worsen
-
-Remember: This AI assistant provides general health guidance only, NOT medical diagnosis or treatment. Always consult a qualified doctor for proper medical care. In emergencies, call 117 or your local emergency number.`;
+  } catch (err: unknown) {
+    const errorMessage = String(err);
+    if (errorMessage.includes('API_KEY_INVALID') || errorMessage.includes('API key')) {
+      return NextResponse.json({
+        data: {
+          response: 'Invalid Gemini API key. Please check your GEMINI_API_KEY in .env.local.\n\nGet a free key at: https://aistudio.google.com/apikey',
+          disclaimer: '',
+        },
+      });
+    }
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

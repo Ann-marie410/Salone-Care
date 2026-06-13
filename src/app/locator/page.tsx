@@ -17,7 +17,11 @@ type Facility = {
 export default function LocatorPage() {
   const [hospitals, setHospitals] = useState<Facility[]>([]);
   const [pharmacies, setPharmacies] = useState<Facility[]>([]);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(
+    typeof navigator !== 'undefined' && !navigator.geolocation
+      ? { lat: 8.4949, lng: -13.2317 }
+      : null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -38,8 +42,6 @@ export default function LocatorPage() {
           setUserLocation({ lat: 8.4949, lng: -13.2317 });
         }
       );
-    } else {
-      setUserLocation({ lat: 8.4949, lng: -13.2317 });
     }
   }, []);
 
@@ -85,7 +87,7 @@ export default function LocatorPage() {
 
     // Dynamically load Leaflet CSS and JS
     const loadLeaflet = async () => {
-      if ((window as any).L) {
+      if ((window as unknown as { L: unknown }).L) {
         initMap();
         return;
       }
@@ -104,7 +106,15 @@ export default function LocatorPage() {
     };
 
     const initMap = () => {
-      const L = (window as any).L;
+      const L = (window as unknown as {
+          L: {
+            map: (...args: unknown[]) => { setView: (...args: unknown[]) => unknown };
+            tileLayer: (url: string, opts?: Record<string, unknown>) => { addTo: (map: unknown) => unknown };
+            circleMarker: (latlng: [number, number], opts?: Record<string, unknown>) => {
+              addTo: (map: unknown) => { bindPopup: (content: string) => unknown };
+            };
+          }
+        }).L;
       const map = L.map(mapContainer.current).setView([userLocation.lat, userLocation.lng], 13);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -126,7 +136,7 @@ export default function LocatorPage() {
 
       // Add hospital markers (red)
       hospitals.forEach((h) => {
-        const marker = L.circleMarker([h.latitude, h.longitude], {
+        L.circleMarker([h.latitude, h.longitude], {
           radius: 10,
           fillColor: '#ef4444',
           color: '#fff',
@@ -185,7 +195,7 @@ export default function LocatorPage() {
         {!userLocation && (
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6">
             <p className="text-blue-800 font-semibold">📍 Requesting your location...</p>
-            <p className="text-sm text-blue-700 mt-1">We'll use your location to show nearby facilities</p>
+            <p className="text-sm text-blue-700 mt-1">We&apos;ll use your location to show nearby facilities</p>
           </div>
         )}
 
@@ -324,8 +334,8 @@ export default function LocatorPage() {
             <li>✓ Allow location access to see facilities nearest to you</li>
             <li>✓ Distances are calculated in real-time based on your location</li>
             <li>✓ Click on any marker on the map for more details</li>
-            <li>✓ Use your phone's call button to contact facilities directly</li>
-            <li>✓ Click "Directions" to get turn-by-turn navigation via Google Maps</li>
+            <li>✓ Use your phone&apos;s call button to contact facilities directly</li>
+            <li>✓ Click &quot;Directions&quot; to get turn-by-turn navigation via Google Maps</li>
           </ul>
         </section>
       </div>

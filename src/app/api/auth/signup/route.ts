@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  { auth: { persistSession: false } }
-);
-
-const supabaseAnon = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-  { auth: { persistSession: false } }
-);
+import { supabaseAdmin, supabaseAnon } from '../../../../lib/supabaseServer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,16 +34,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userRole = role || 'patient';
+    const approvalStatus = userRole === 'doctor' || userRole === 'pharmacy' ? 'pending' : 'approved';
+
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: userData.user.id,
+      .update({
         full_name: fullName,
-        role: role || 'patient',
-      });
+        role: userRole,
+        approval_status: approvalStatus,
+      })
+      .eq('id', userData.user.id);
 
-    if (profileError && profileError.code !== '23505') {
-      console.error('Profile creation error:', profileError);
+    if (profileError) {
+      console.error('Profile update error:', profileError);
     }
 
     const { data: signInData, error: signInError } = await supabaseAnon.auth.signInWithPassword({

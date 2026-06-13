@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  {
-    auth: { persistSession: false },
-  }
-);
+import { supabaseAdmin, supabaseAnon } from '../../../../lib/supabaseServer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the OTP token
-    const { data, error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabaseAnon.auth.verifyOtp({
       email,
       token,
       type: 'email',
@@ -43,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     // Set the user's password (signInWithOtp doesn't set one)
     if (password) {
-      const { error: passwordError } = await supabase.auth.admin.updateUserById(
+      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(
         data.user.id,
         { password }
       );
@@ -57,7 +49,7 @@ export async function POST(request: NextRequest) {
     const role = data.user.user_metadata?.role || 'patient';
 
     // Check if profile exists (auto-trigger should have created it)
-    const { data: profileData } = await supabase
+    const { data: profileData } = await supabaseAdmin
       .from('profiles')
       .select('id')
       .eq('id', data.user.id)
@@ -65,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Create profile if it doesn't exist (fallback)
     if (!profileData) {
-      const { error: createProfileError } = await supabase
+      const { error: createProfileError } = await supabaseAdmin
         .from('profiles')
         .insert({
           id: data.user.id,

@@ -1,9 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '../../../lib/supabaseServer';
 
 export async function GET(request: Request) {
   try {
@@ -14,7 +10,7 @@ export async function GET(request: Request) {
 
     if (type === 'hospital') {
       // Fetch hospitals from emergency_contacts
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('emergency_contacts')
         .select('*')
         .eq('contact_type', 'hospital');
@@ -24,7 +20,7 @@ export async function GET(request: Request) {
       const defaultLat = 8.4949;
       const defaultLng = -13.2317;
 
-      const hospitals = (data || []).map((h: any) => {
+      const hospitals = (data || []).map((h: { id: string; name: string; description: string | null; phone: string; latitude: number | null; longitude: number | null }) => {
         const facilityLat = h.latitude ?? defaultLat;
         const facilityLng = h.longitude ?? defaultLng;
         return {
@@ -39,37 +35,44 @@ export async function GET(request: Request) {
         };
       });
 
-      return Response.json({ data: hospitals });
+      return NextResponse.json({ data: hospitals });
     } else if (type === 'pharmacy') {
       // Fetch pharmacies from pharmacies table
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('pharmacies')
         .select('id, user_id, name, address, latitude, longitude, phone')
         .eq('approval_status', 'approved');
 
       if (error) throw error;
 
-      const pharmacies = (data || []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        address: p.address,
-        phone: p.phone,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        type: 'pharmacy',
-        distance: calculateDistance(lat, lng, p.latitude, p.longitude),
-      }));
+      const defaultLat = 8.4949;
+      const defaultLng = -13.2317;
+
+      const pharmacies = (data || []).map((p: { id: string; name: string; address: string; phone: string; latitude: number | null; longitude: number | null }) => {
+        const facilityLat = p.latitude ?? defaultLat;
+        const facilityLng = p.longitude ?? defaultLng;
+        return {
+          id: p.id,
+          name: p.name,
+          address: p.address,
+          phone: p.phone,
+          latitude: facilityLat,
+          longitude: facilityLng,
+          type: 'pharmacy',
+          distance: calculateDistance(lat, lng, facilityLat, facilityLng),
+        };
+      });
 
       // Sort by distance
-      pharmacies.sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0));
+      pharmacies.sort((a: { distance?: number }, b: { distance?: number }) => (a.distance || 0) - (b.distance || 0));
 
-      return Response.json({ data: pharmacies });
+      return NextResponse.json({ data: pharmacies });
     }
 
-    return Response.json({ error: 'Invalid type parameter' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
   } catch (error) {
     console.error('Facilities API error:', error);
-    return Response.json({ error: 'Failed to fetch facilities' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch facilities' }, { status: 500 });
   }
 }
 

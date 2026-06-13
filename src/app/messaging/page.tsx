@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabaseClient';
 type Message = { id: string; sender_id: string; content: string; created_at: string };
 
 export default function MessagingPage() {
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
@@ -28,7 +28,13 @@ export default function MessagingPage() {
   }
 
   useEffect(() => {
-    if (conversationId) loadMessages();
+    if (!conversationId) return;
+    async function fetchMessages() {
+      const res = await fetch(`/api/messages?conversation_id=${conversationId}`);
+      const json = await res.json();
+      setMessages(json.data || []);
+    }
+    fetchMessages();
   }, [conversationId]);
 
   async function handleSend(e: React.FormEvent) {

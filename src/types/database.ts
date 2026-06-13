@@ -17,6 +17,7 @@ export interface Profile {
   full_name: string;
   phone: string | null;
   avatar_url: string | null;
+  approval_status: ApprovalStatus;
   created_at: string;
   updated_at: string;
 }

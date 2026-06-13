@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import supabaseAdmin from '../../../lib/supabaseServer';
+import { supabaseAdmin } from '../../../lib/supabaseServer';
 
 export async function GET(req: Request) {
   try {
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     const { data, error } = await query.order('scheduled_at', { ascending: true });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ data });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ data }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

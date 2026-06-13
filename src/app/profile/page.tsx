@@ -127,7 +127,7 @@ export default function ProfilePage() {
                     </svg>
                     <div>
                       <p className="font-semibold text-yellow-800">Pending Approval</p>
-                      <p className="text-sm text-yellow-700">Our admin team is reviewing your credentials. You'll receive an email once verified.</p>
+                      <p className="text-sm text-yellow-700">Our admin team is reviewing your credentials. You&apos;ll receive an email once verified.</p>
                     </div>
                   </div>
                 )}
