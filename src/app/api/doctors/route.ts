@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const { data, error } = await supabaseAdmin
       .from('doctors')
-      .select('id, user_id, specialization, hospital_affiliation, approval_status, bio, profiles(full_name)')
+      .select('id, user_id, specialization, hospital_affiliation, approval_status, bio, availability, profiles(full_name)')
       .eq('approval_status', 'approved');
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

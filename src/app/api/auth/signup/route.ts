@@ -50,6 +50,17 @@ export async function POST(request: NextRequest) {
       console.error('Profile update error:', profileError);
     }
 
+    if (userRole === 'doctor') {
+      const { error: doctorError } = await supabaseAdmin.from('doctors').insert({
+        user_id: userData.user.id,
+        specialization: '',
+        hospital_affiliation: '',
+      });
+      if (doctorError) {
+        console.error('Doctor record creation error:', doctorError);
+      }
+    }
+
     const { data: signInData, error: signInError } = await supabaseAnon.auth.signInWithPassword({
       email,
       password,

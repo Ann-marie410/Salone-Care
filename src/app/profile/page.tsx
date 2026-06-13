@@ -142,6 +142,14 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 )}
+                {profile.role === 'doctor' && isApproved && (
+                  <Link
+                    href="/doctor/dashboard"
+                    className="block w-full text-center px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg font-semibold"
+                  >
+                    Go to Doctor Dashboard
+                  </Link>
+                )}
                 {isRejected && (
                   <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

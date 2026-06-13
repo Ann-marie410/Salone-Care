@@ -59,7 +59,7 @@ export default function LandingPage() {
               { icon: "📅", title: "Easy Appointments", desc: "Book appointments with verified doctors instantly" },
               { icon: "💬", title: "Direct Messaging", desc: "Real-time chat with your healthcare provider" },
               { icon: "🤖", title: "AI Assistant", desc: "Get personalized health guidance 24/7" },
-              { icon: "💊", title: "Digital Prescriptions", desc: "Secure and verified prescription management" },
+              { icon: "💊", title: "We Heath Pharmacy", desc: "Affordable medicines from NLE 10 at your trusted pharmacy" },
               { icon: "🏥", title: "Hospital Locator", desc: "Find nearby hospitals and pharmacies easily" },
               { icon: "🚨", title: "Emergency Contacts", desc: "Quick access to emergency services anytime" }
             ].map((feature, idx) => (
@@ -84,8 +84,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Hospital Locator Section */}
+      {/* Pharmacy Section */}
       <section className="py-20 px-4 bg-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h3 className="text-3xl font-bold mb-4 text-gray-900">💊 We Heath Pharmacy</h3>
+          <p className="mb-6 text-gray-700 text-lg">Quality medicines from NLE 10. Visit us or call 077578317</p>
+          <Link href="/pharmacy" className="inline-block bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-3 rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg font-semibold">
+            Browse Medicines
+          </Link>
+        </div>
+      </section>
+
+      {/* Hospital Locator Section */}
+      <section className="py-20 px-4 bg-gradient-to-br from-blue-50 to-white">
         <div className="max-w-4xl mx-auto text-center">
           <h3 className="text-3xl font-bold mb-4 text-gray-900">🏥 Find Nearby Facilities</h3>
           <p className="mb-6 text-gray-700 text-lg">Discover hospitals and pharmacies near you with real-time directions</p>

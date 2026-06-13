@@ -31,6 +31,7 @@ export interface Doctor {
   stamp_url: string | null;
   approval_status: ApprovalStatus;
   bio: string | null;
+  availability: Record<string, string[]> | null;
   created_at: string;
   updated_at: string;
 }
