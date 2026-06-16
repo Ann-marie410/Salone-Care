@@ -10,6 +10,25 @@ SET session_replication_role = replica;
 INSERT INTO emergency_contacts (name, phone, contact_type, description, latitude, longitude) VALUES
   ('Emergency Services (117)', '117', 'emergency', 'National emergency number', NULL, NULL),
   ('Connaught Hospital', '+232 22 228 394', 'hospital', 'Main referral hospital in Freetown', 8.4870, -13.2345),
+  ('Choithram Memorial Hospital', '+232 22 235 562', 'hospital', 'Private hospital in Freetown with multi-specialty care', 8.4775, -13.2250),
+  ('Princess Christian Maternity Hospital', '+232 22 236 500', 'hospital', 'Maternity and women''s health hospital in Freetown', 8.4800, -13.2380),
+  ('Ola During Children''s Hospital', '+232 22 233 400', 'hospital', 'Specialist paediatric hospital in Freetown', 8.4830, -13.2400),
+  ('Rokupa Government Hospital', '+232 22 232 100', 'hospital', 'Government hospital in Rokupa, Freetown', 8.4700, -13.2450),
+  ('Sierra Leone China Friendship Hospital', '+232 22 286 444', 'hospital', 'Modern hospital in Jui on the outskirts of Freetown', 8.4320, -13.2270),
+  ('Aspen Medical Centre', '+232 76 543 210', 'hospital', 'Private medical centre in Aberdeen, Freetown', 8.4960, -13.2720),
+  ('Bo Government Hospital', '+232 76 303 010', 'hospital', 'Major referral hospital in Bo, southern Sierra Leone', 7.9610, -11.7390),
+  ('Makeni Government Hospital', '+232 76 302 020', 'hospital', 'Government hospital serving Makeni and surrounding districts', 8.8820, -12.0430),
+  ('Kenema Government Hospital', '+232 76 301 030', 'hospital', 'Referral hospital in Kenema, eastern Sierra Leone', 7.8770, -11.1900),
+  ('Koidu Government Hospital', '+232 76 304 040', 'hospital', 'Government hospital in Koidu, Kono district', 8.6440, -10.9700),
+  ('Holy Spirit Hospital', '+232 76 305 050', 'hospital', 'Catholic mission hospital in Makeni', 8.8700, -12.0500),
+  ('Mercy Hospital', '+232 76 306 060', 'hospital', 'Private hospital in Bo', 7.9540, -11.7440),
+  ('Port Loko Government Hospital', '+232 76 307 070', 'hospital', 'Government hospital in Port Loko', 8.8410, -12.8260),
+  ('Kabala Government Hospital', '+232 76 308 080', 'hospital', 'Government hospital in Kabala, Koinadugu district', 9.5890, -11.5570),
+  ('Magburaka Government Hospital', '+232 76 309 090', 'hospital', 'Government hospital in Magburaka, Tonkolili district', 8.7230, -11.9490),
+  ('Kailahun Government Hospital', '+232 76 310 100', 'hospital', 'Government hospital in Kailahun, eastern Sierra Leone', 8.2820, -10.5690),
+  ('Pujehun Government Hospital', '+232 76 311 110', 'hospital', 'Government hospital in Pujehun, southern Sierra Leone', 7.3520, -11.7200),
+  ('Kambia Government Hospital', '+232 76 312 120', 'hospital', 'Government hospital in Kambia, northern Sierra Leone', 9.1250, -12.9220),
+  ('Bonthe Government Hospital', '+232 76 313 130', 'hospital', 'Government hospital on Bonthe Island', 7.5270, -12.5060),
   ('Red Cross Sierra Leone', '+232 76 612 345', 'ambulance', 'Emergency ambulance and disaster response', NULL, NULL),
   ('Police Emergency', '999', 'police', 'Sierra Leone Police emergency line', NULL, NULL);
 
@@ -43,10 +62,19 @@ INSERT INTO pharmacies (id, user_id, name, address, latitude, longitude, phone, 
 -- Sample Medicines
 -- ---------------------------------------------------------------------------
 
-INSERT INTO medicines (id, pharmacy_id, name, generic_name, dosage_form, strength, in_stock, quantity, created_at, updated_at) VALUES
-  ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'Aspirin', 'Acetylsalicylic acid', 'tablet', '100mg', true, 50, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'Amoxicillin', 'Amoxicillin', 'capsule', '500mg', true, 30, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', 'Paracetamol', 'Paracetamol', 'tablet', '500mg', true, 100, NOW(), NOW());
+INSERT INTO medicines (id, pharmacy_id, name, generic_name, dosage_form, strength, in_stock, quantity, price, created_at, updated_at) VALUES
+  ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'Aspirin', 'Acetylsalicylic acid', 'tablet', '100mg', true, 50, 8.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'Amoxicillin', 'Amoxicillin', 'capsule', '500mg', true, 30, 20.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', 'Paracetamol', 'Paracetamol', 'tablet', '500mg', true, 100, 10.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000001', 'ORS (Oral Rehydration Salts)', 'Oral rehydration salts', 'powder', '20.5g sachet', true, 80, 10.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000001', 'Ibuprofen', 'Ibuprofen', 'tablet', '400mg', true, 45, 12.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000001', 'Chloroquine', 'Chloroquine phosphate', 'tablet', '250mg', true, 60, 15.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000001', 'Vitamin C Tablets', 'Ascorbic acid', 'tablet', '500mg', true, 90, 15.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000008', '30000000-0000-0000-0000-000000000001', 'Multivitamins', 'Multivitamin complex', 'tablet', '--', true, 70, 25.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000009', '30000000-0000-0000-0000-000000000001', 'Cough Syrup (Simple)', 'Dextromethorphan', 'syrup', '100ml', true, 35, 20.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000010', '30000000-0000-0000-0000-000000000001', 'Malaria Rapid Test Kit', 'Malaria antigen test', 'kit', '1 test', true, 40, 25.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000001', 'Zinc Tablets', 'Zinc sulfate', 'tablet', '20mg', true, 85, 10.00, NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000001', 'Antacids', 'Aluminium hydroxide + Magnesium hydroxide', 'tablet', '--', true, 55, 12.00, NOW(), NOW());
 
 -- ---------------------------------------------------------------------------
 -- Sample Appointments

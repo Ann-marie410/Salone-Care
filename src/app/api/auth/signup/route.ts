@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, supabaseAnon } from '../../../../lib/supabaseServer';
+import { supabaseAdmin } from '../../../../lib/supabaseServer';
+import { sendOTPEmail } from '../../../../lib/email';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, fullName, role } = await request.json();
+    const body = await request.json();
+    const { email, password, role } = body;
 
-    if (!email || !password || !fullName) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email, password, and full name are required' },
+        { error: 'Email and password are required' },
         { status: 400 }
       );
     }
@@ -19,11 +21,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let fullName = '';
+
+    if (role === 'patient') {
+      fullName = body.fullName;
+      if (!fullName) {
+        return NextResponse.json(
+          { error: 'Full name is required' },
+          { status: 400 }
+        );
+      }
+    } else if (role === 'doctor') {
+      fullName = body.fullName;
+      if (!fullName || !body.specialty || !body.licenseNumber) {
+        return NextResponse.json(
+          { error: 'Full name, specialty, and license number are required' },
+          { status: 400 }
+        );
+      }
+    } else if (role === 'pharmacy') {
+      fullName = body.pharmacyName;
+      if (!fullName || !body.pharmacyIdNumber) {
+        return NextResponse.json(
+          { error: 'Pharmacy name and identification number are required' },
+          { status: 400 }
+        );
+      }
+      if (fullName !== 'We Health Pharmacy') {
+        return NextResponse.json(
+          { error: 'Only We Health Pharmacy is authorized to register' },
+          { status: 400 }
+        );
+      }
+      if (body.pharmacyIdNumber !== 'weheath1290') {
+        return NextResponse.json(
+          { error: 'Invalid pharmacy identification number' },
+          { status: 400 }
+        );
+      }
+    } else {
+      return NextResponse.json(
+        { error: 'Invalid role. Must be patient, doctor, or pharmacy' },
+        { status: 400 }
+      );
+    }
+
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
-      user_metadata: { full_name: fullName, role: role || 'patient' },
+      email_confirm: false,
+      user_metadata: { full_name: fullName, role },
     });
 
     if (createError) {
@@ -34,14 +81,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userRole = role || 'patient';
-    const approvalStatus = userRole === 'doctor' || userRole === 'pharmacy' ? 'pending' : 'approved';
+    const approvalStatus = role === 'doctor' || role === 'pharmacy' ? 'pending' : 'approved';
 
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
         full_name: fullName,
-        role: userRole,
+        role,
         approval_status: approvalStatus,
       })
       .eq('id', userData.user.id);
@@ -50,35 +96,69 @@ export async function POST(request: NextRequest) {
       console.error('Profile update error:', profileError);
     }
 
-    if (userRole === 'doctor') {
+    if (role === 'doctor') {
       const { error: doctorError } = await supabaseAdmin.from('doctors').insert({
         user_id: userData.user.id,
-        specialization: '',
+        specialization: body.specialty,
         hospital_affiliation: '',
+        license_number: body.licenseNumber,
       });
       if (doctorError) {
         console.error('Doctor record creation error:', doctorError);
       }
     }
 
-    const { data: signInData, error: signInError } = await supabaseAnon.auth.signInWithPassword({
-      email,
-      password,
-    });
+    if (role === 'pharmacy') {
+      const { error: pharmacyError } = await supabaseAdmin.from('pharmacies').insert({
+        user_id: userData.user.id,
+        name: fullName,
+        address: '',
+        phone: '',
+        pharmacy_identification_number: body.pharmacyIdNumber,
+      });
+      if (pharmacyError) {
+        console.error('Pharmacy record creation error:', pharmacyError);
+      }
+    }
 
-    if (signInError) {
-      console.error('Supabase signIn error:', signInError);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    const { error: otpError } = await supabaseAdmin
+      .from('email_verifications')
+      .insert({
+        email,
+        code: otp,
+        expires_at: expiresAt,
+        verified: false,
+      });
+
+    if (otpError) {
+      console.error('[SIGNUP] OTP save error:', otpError);
       return NextResponse.json(
-        { error: signInError.message },
-        { status: 400 }
+        { error: 'Failed to save verification code' },
+        { status: 500 }
       );
     }
 
+    try {
+      await sendOTPEmail(email, otp);
+    } catch (emailError) {
+      const msg = emailError instanceof Error ? emailError.message : String(emailError);
+      console.error('[SIGNUP] Failed to send OTP email:', msg);
+      return NextResponse.json(
+        { error: `Failed to send verification email: ${msg}` },
+        { status: 500 }
+      );
+    }
+
+    console.log('[SIGNUP] Account created and OTP sent successfully for:', email);
+
     return NextResponse.json({
       success: true,
-      session: signInData.session,
-      user: signInData.user,
-      role: role || 'patient',
+      email,
+      role,
+      message: 'Account created! Please verify your email.',
     });
   } catch (error) {
     console.error('Signup error:', error);

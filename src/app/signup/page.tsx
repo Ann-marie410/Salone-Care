@@ -3,70 +3,175 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "../../lib/supabaseClient";
+
+type Role = "patient" | "doctor" | "pharmacy" | null;
 
 export default function SignUpPage() {
   const router = useRouter();
+  const [selectedRole, setSelectedRole] = useState<Role>(null);
   const [fullName, setFullName] = useState("");
+  const [pharmacyName, setPharmacyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("patient");
+  const [specialty, setSpecialty] = useState("");
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [pharmacyIdNumber, setPharmacyIdNumber] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [messageType, setMessageType] = useState<'error' | 'success'>('error');
+  const [messageType, setMessageType] = useState<"error" | "success">("error");
+
+  function handleRoleSelect(role: Role) {
+    setSelectedRole(role);
+    setMessage(null);
+  }
+
+  function handleBack() {
+    setSelectedRole(null);
+    setMessage(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
 
-    if (!fullName.trim()) {
-      setMessage("Full name is required");
-      setMessageType('error');
-      return;
-    }
     if (!email.trim()) {
       setMessage("Email is required");
-      setMessageType('error');
+      setMessageType("error");
       return;
     }
     if (!password.trim()) {
       setMessage("Password is required");
-      setMessageType('error');
+      setMessageType("error");
       return;
     }
     if (password.length < 6) {
       setMessage("Password must be at least 6 characters");
-      setMessageType('error');
+      setMessageType("error");
       return;
+    }
+
+    const body: Record<string, string> = { email, password, role: selectedRole! };
+
+    if (selectedRole === "patient") {
+      if (!fullName.trim()) {
+        setMessage("Full name is required");
+        setMessageType("error");
+        return;
+      }
+      body.fullName = fullName;
+    } else if (selectedRole === "doctor") {
+      if (!fullName.trim() || !specialty.trim() || !licenseNumber.trim()) {
+        setMessage("All fields are required");
+        setMessageType("error");
+        return;
+      }
+      body.fullName = fullName;
+      body.specialty = specialty;
+      body.licenseNumber = licenseNumber;
+    } else if (selectedRole === "pharmacy") {
+      if (!pharmacyName.trim() || !pharmacyIdNumber.trim()) {
+        setMessage("All fields are required");
+        setMessageType("error");
+        return;
+      }
+      body.pharmacyName = pharmacyName;
+      body.pharmacyIdNumber = pharmacyIdNumber;
     }
 
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName, role })
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.error || 'Signup failed');
-        setMessageType('error');
+        setMessage(data.error || "Signup failed");
+        setMessageType("error");
         return;
       }
 
-      if (data.session) {
-        await supabase.auth.setSession(data.session);
-      }
-
-      router.push('/appointments');
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "An error occurred");
-      setMessageType('error');
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
+    } catch {
+      setMessage("An error occurred");
+      setMessageType("error");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!selectedRole) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center py-12 px-4">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
+
+        <div className="w-full max-w-lg p-8 bg-white rounded-2xl shadow-2xl relative z-10 border border-blue-100">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 mb-2">SaloneCare</h1>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Join as a...</h2>
+            <p className="text-gray-600">Choose your account type to get started</p>
+          </div>
+
+          <div className="space-y-4">
+            <button
+              onClick={() => handleRoleSelect("patient")}
+              className="w-full p-5 text-left border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl group-hover:bg-blue-200 transition">
+                  🏥
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg">Patient</h3>
+                  <p className="text-sm text-gray-600">Access healthcare services and book appointments</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleRoleSelect("doctor")}
+              className="w-full p-5 text-left border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-2xl group-hover:bg-green-200 transition">
+                  🩺
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg">Doctor</h3>
+                  <p className="text-sm text-gray-600">Manage appointments and provide care</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleRoleSelect("pharmacy")}
+              className="w-full p-5 text-left border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-2xl group-hover:bg-purple-200 transition">
+                  💊
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg">Pharmacy</h3>
+                  <p className="text-sm text-gray-600">List medicines and manage orders</p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{" "}
+              <Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold">Sign in</Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -77,22 +182,93 @@ export default function SignUpPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-md p-8 bg-white rounded-2xl shadow-2xl relative z-10 border border-blue-100">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800 mb-2">SaloneCare</h1>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Create Account</h2>
-          <p className="text-gray-600">Join us to access healthcare services</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {selectedRole === "patient" && "Patient Sign Up"}
+            {selectedRole === "doctor" && "Doctor Sign Up"}
+            {selectedRole === "pharmacy" && "Pharmacy Sign Up"}
+          </h2>
+          <p className="text-gray-600">Create your account</p>
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="block mb-2 font-semibold text-gray-700">Full Name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              disabled={loading}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100 transition"
-              placeholder="Your full name"
-            />
-          </div>
+          {selectedRole === "patient" && (
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700">Full Name</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                disabled={loading}
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100 transition"
+                placeholder="Your full name"
+              />
+            </div>
+          )}
+
+          {selectedRole === "doctor" && (
+            <>
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">Full Name</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100 transition"
+                  placeholder="Dr. John Doe"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">Specialty</label>
+                <input
+                  type="text"
+                  value={specialty}
+                  onChange={(e) => setSpecialty(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100 transition"
+                  placeholder="e.g. Cardiology, Pediatrics"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">Medical License Number</label>
+                <input
+                  type="text"
+                  value={licenseNumber}
+                  onChange={(e) => setLicenseNumber(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100 transition"
+                  placeholder="Your medical license number"
+                />
+              </div>
+            </>
+          )}
+
+          {selectedRole === "pharmacy" && (
+            <>
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">Pharmacy Name</label>
+                <input
+                  type="text"
+                  value={pharmacyName}
+                  onChange={(e) => setPharmacyName(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100 transition"
+                  placeholder="Your pharmacy name"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">Pharmacy Identification Number</label>
+                <input
+                  type="text"
+                  value={pharmacyIdNumber}
+                  onChange={(e) => setPharmacyIdNumber(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100 transition"
+                  placeholder="Your pharmacy ID number"
+                />
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block mb-2 font-semibold text-gray-700">Email</label>
@@ -117,20 +293,6 @@ export default function SignUpPage() {
               placeholder="At least 6 characters"
             />
           </div>
-
-          <div>
-            <label className="block mb-2 font-semibold text-gray-700">Account Type</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              disabled={loading}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100 transition"
-            >
-              <option value="patient">Patient</option>
-              <option value="doctor">Doctor</option>
-              <option value="pharmacy">Pharmacy</option>
-            </select>
-          </div>
         </div>
 
         <button
@@ -138,18 +300,32 @@ export default function SignUpPage() {
           disabled={loading}
           className="w-full mt-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all font-semibold shadow-lg hover:shadow-xl"
         >
-          {loading ? 'Creating account...' : 'Create Account'}
+          {loading ? "Creating account..." : "Create Account"}
         </button>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">Already have an account? <Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold">Sign in</Link></p>
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={loading}
+            className="text-blue-600 hover:text-blue-700 font-semibold text-sm"
+          >
+            ← Change account type
+          </button>
+        </div>
+
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-600">
+            Already have an account?{" "}
+            <Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold">Sign in</Link>
+          </p>
         </div>
 
         {message && (
           <div className={`mt-6 p-4 rounded-lg text-sm font-medium ${
-            messageType === 'error'
-              ? 'bg-red-50 text-red-700 border border-red-200'
-              : 'bg-green-50 text-green-700 border border-green-200'
+            messageType === "error"
+              ? "bg-red-50 text-red-700 border border-red-200"
+              : "bg-green-50 text-green-700 border border-green-200"
           }`}>
             {message}
           </div>

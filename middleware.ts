@@ -1,30 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const publicRoutes = ['/', '/login', '/signup', '/verify-otp', '/emergency', '/ai-assistant', '/locator', '/pharmacy', '/api/test-email'];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/signup', '/emergency', '/ai-assistant', '/locator', '/pharmacy'];
-  
-  // Check if the route is public
-  if (publicRoutes.includes(pathname)) {
+
+  // Let API routes and public routes pass through immediately
+  if (publicRoutes.includes(pathname) || pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
-  
-  // For protected routes, let Next.js handle it
-  // The individual pages will check authentication
+
+  // For protected pages, return next() — individual pages handle their own auth
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 };

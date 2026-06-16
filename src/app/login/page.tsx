@@ -13,12 +13,41 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [messageType, setMessageType] = useState<'error' | 'success'>('success');
 
-  // Check if already logged in
+  async function checkApprovalAndRoute(): Promise<string | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return '/login';
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, approval_status')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile) return '/login';
+
+    if (profile.role === 'doctor' && profile.approval_status !== 'approved') {
+      await supabase.auth.signOut();
+      return null;
+    }
+
+    if (profile.role === 'pharmacy' && profile.approval_status !== 'approved') {
+      await supabase.auth.signOut();
+      return null;
+    }
+
+    switch (profile.role) {
+      case 'doctor': return '/doctor/dashboard';
+      case 'pharmacy': return '/pharmacy/dashboard';
+      default: return '/appointments';
+    }
+  }
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        router.push('/appointments');
+        const url = await checkApprovalAndRoute();
+        if (url) router.push(url);
       }
     };
     checkAuth();
@@ -27,7 +56,7 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
-    
+
     if (!email.trim()) {
       setMessage("Email is required");
       setMessageType('error');
@@ -47,11 +76,14 @@ export default function LoginPage() {
         setMessage(error.message);
         setMessageType('error');
       } else {
-        setMessage("Signed in successfully! Redirecting...");
-        setMessageType('success');
-        setTimeout(() => {
-          router.push('/appointments');
-        }, 1500);
+        const url = await checkApprovalAndRoute();
+        if (url) {
+          router.push(url);
+        } else {
+          await supabase.auth.signOut();
+          setMessage("Your account is pending admin approval. You will be able to sign in once your credentials have been verified by our team.");
+          setMessageType('error');
+        }
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "An error occurred");
@@ -113,9 +145,8 @@ export default function LoginPage() {
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
 
-        <div className="mt-6 text-center space-y-2">
+        <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">Don&apos;t have an account? <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-semibold">Create one</Link></p>
-          <p><Link href="/" className="text-xs text-gray-500 hover:text-gray-700">← Back to home</Link></p>
         </div>
 
         {message && (

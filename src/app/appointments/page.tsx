@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import Link from 'next/link';
 
@@ -8,6 +9,7 @@ type Doctor = { id: string; full_name: string; specialization: string; hospital_
 type Appointment = { id: string; scheduled_at: string; reason?: string; doctor_id: string };
 
 export default function AppointmentsPage() {
+  const router = useRouter();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
@@ -15,16 +17,43 @@ export default function AppointmentsPage() {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.role === 'doctor') {
+        router.push('/doctor/dashboard');
+        return;
+      }
+      if (profile?.role === 'pharmacy') {
+        router.push('/pharmacy/dashboard');
+        return;
+      }
+
+      setCheckingRole(false);
+      loadDoctors();
+      loadAppointments();
+    }
+
     async function loadDoctors() {
       const res = await fetch('/api/doctors');
       const json = await res.json();
       setDoctors(json.data || []);
     }
 
-    loadDoctors();
-    loadAppointments();
+    init();
   }, []);
 
   async function loadAppointments() {
@@ -70,6 +99,14 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingRole) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
   }
 
   return (

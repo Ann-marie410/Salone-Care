@@ -29,6 +29,7 @@ export interface Doctor {
   hospital_affiliation: string;
   license_url: string | null;
   stamp_url: string | null;
+  license_number: string | null;
   approval_status: ApprovalStatus;
   bio: string | null;
   availability: Record<string, string[]> | null;
@@ -45,6 +46,7 @@ export interface Pharmacy {
   longitude: number | null;
   phone: string;
   stamp_url: string | null;
+  pharmacy_identification_number: string | null;
   approval_status: ApprovalStatus;
   created_at: string;
   updated_at: string;
@@ -102,6 +104,7 @@ export interface Medicine {
   generic_name: string | null;
   dosage_form: string | null;
   strength: string | null;
+  price: number;
   in_stock: boolean;
   quantity: number | null;
   created_at: string;
@@ -117,6 +120,39 @@ export interface PrescriptionMedicine {
   frequency: string;
   duration: string | null;
   instructions: string | null;
+  created_at: string;
+}
+
+export interface EmailVerification {
+  id: string;
+  email: string;
+  code: string;
+  expires_at: string;
+  verified: boolean;
+  created_at: string;
+}
+
+export type OrderStatus = "pending" | "paid" | "delivered" | "cancelled";
+
+export interface Order {
+  id: string;
+  pharmacy_id: string;
+  customer_name: string;
+  customer_phone: string;
+  notes: string | null;
+  total_amount: number;
+  status: OrderStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  medicine_id: string | null;
+  medicine_name: string;
+  price: number;
+  quantity: number;
   created_at: string;
 }
 
@@ -214,6 +250,31 @@ export interface Database {
         };
         Update: Partial<Omit<PrescriptionMedicine, "id">>;
       };
+      email_verifications: {
+        Row: EmailVerification;
+        Insert: Omit<EmailVerification, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<EmailVerification, "id">>;
+      };
+      orders: {
+        Row: Order;
+        Insert: Omit<Order, "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Order, "id">>;
+      };
+      order_items: {
+        Row: OrderItem;
+        Insert: Omit<OrderItem, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<OrderItem, "id">>;
+      };
       emergency_contacts: {
         Row: EmergencyContact;
         Insert: Omit<EmergencyContact, "id" | "created_at" | "updated_at"> & {
@@ -229,6 +290,7 @@ export interface Database {
       approval_status: ApprovalStatus;
       appointment_status: AppointmentStatus;
       prescription_status: PrescriptionStatus;
+      order_status: OrderStatus;
     };
   };
 }

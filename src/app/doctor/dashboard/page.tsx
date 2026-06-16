@@ -49,7 +49,7 @@ export default function DoctorDashboard() {
   const [msgInput, setMsgInput] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'availability' | 'messages'>('appointments');
+  const [activeTab, setActiveTab] = useState<'overview' | 'availability' | 'messages'>('overview');
 
   const [availability, setAvailability] = useState<Record<string, string[]>>({
     monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: [],
@@ -244,7 +244,7 @@ export default function DoctorDashboard() {
       <div className="bg-white border-b">
         <div className="max-w-6xl mx-auto flex">
           {([
-            { key: 'appointments', label: 'Appointments' },
+            { key: 'overview', label: 'Overview' },
             { key: 'availability', label: 'Availability' },
             { key: 'messages', label: 'Messages' },
           ] as const).map((tab) => (
@@ -264,51 +264,126 @@ export default function DoctorDashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto p-6">
-        {/* Appointments Tab */}
-        {activeTab === 'appointments' && (
+        {/* Overview Tab - Landing Page */}
+        {activeTab === 'overview' && (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Appointments</h2>
-            {appointments.length === 0 ? (
-              <div className="bg-white rounded-xl shadow p-12 text-center">
-                <p className="text-gray-500 text-lg">No appointments yet.</p>
+            {/* Stats Cards */}
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <p className="text-gray-600 text-sm font-semibold mb-1">Total Bookings</p>
+                <p className="text-4xl font-bold text-gray-900">{appointments.length}</p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {appointments.map((apt) => (
-                  <div key={apt.id} className="bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-bold text-lg text-gray-900">
-                          {apt.profiles?.full_name || 'Unknown Patient'}
-                        </h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          📅 {new Date(apt.scheduled_at).toLocaleDateString('en-US', {
-                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                            hour: '2-digit', minute: '2-digit',
-                          })}
-                        </p>
-                        {apt.reason && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            <strong>Reason:</strong> {apt.reason}
-                          </p>
-                        )}
-                        {apt.profiles?.phone && (
-                          <p className="text-sm text-gray-500 mt-1">📞 {apt.profiles.phone}</p>
-                        )}
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+                <p className="text-gray-600 text-sm font-semibold mb-1">Pending</p>
+                <p className="text-4xl font-bold text-gray-900">
+                  {appointments.filter((a) => a.status === 'pending').length}
+                </p>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <p className="text-gray-600 text-sm font-semibold mb-1">Today's Appointments</p>
+                <p className="text-4xl font-bold text-gray-900">
+                  {appointments.filter((a) =>
+                    new Date(a.scheduled_at).toDateString() === new Date().toDateString()
+                  ).length}
+                </p>
+              </div>
+            </div>
+
+            {/* Patient Bookings */}
+            <div className="bg-white rounded-xl shadow p-6 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Patient Bookings</h2>
+              {appointments.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">No bookings yet.</p>
+                  <p className="text-gray-400 text-sm mt-2">When patients book appointments, they will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {appointments.map((apt) => (
+                    <div key={apt.id} className="border border-gray-200 rounded-lg p-5 hover:border-green-300 transition">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
+                              {(apt.profiles?.full_name || '?')[0]}
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-lg text-gray-900">
+                                {apt.profiles?.full_name || 'Unknown Patient'}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                {new Date(apt.scheduled_at).toLocaleDateString('en-US', {
+                                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                                  hour: '2-digit', minute: '2-digit',
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          {apt.reason && (
+                            <p className="text-sm text-gray-600 ml-13 pl-1">
+                              <strong>Reason:</strong> {apt.reason}
+                            </p>
+                          )}
+                          {apt.profiles?.phone && (
+                            <p className="text-sm text-gray-500 ml-13 pl-1 mt-1">
+                              Phone: {apt.profiles.phone}
+                            </p>
+                          )}
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                          apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          apt.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                          apt.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
+                        </span>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        apt.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                        apt.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent Messages Preview */}
+            <div className="bg-white rounded-xl shadow p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Messages from Patients</h2>
+                <button
+                  onClick={() => setActiveTab('messages')}
+                  className="text-sm text-green-600 hover:text-green-700 font-semibold"
+                >
+                  View All →
+                </button>
               </div>
-            )}
+              {conversations.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No messages yet.</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {conversations.slice(0, 5).map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => { setActiveTab('messages'); setSelectedConv(conv.id); }}
+                      className="w-full text-left p-4 hover:bg-green-50 transition flex items-center gap-3"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                        {(conv.profiles?.full_name || '?')[0]}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {conv.profiles?.full_name || 'Patient'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {conv.profiles?.phone || ''}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

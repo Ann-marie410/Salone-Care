@@ -1,5 +1,9 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../lib/supabaseServer';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function GET(request: Request) {
   try {
@@ -10,69 +14,55 @@ export async function GET(request: Request) {
 
     if (type === 'hospital') {
       // Fetch hospitals from emergency_contacts
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabase
         .from('emergency_contacts')
         .select('*')
         .eq('contact_type', 'hospital');
 
       if (error) throw error;
 
-      const defaultLat = 8.4949;
-      const defaultLng = -13.2317;
+      const hospitals = (data || []).map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        address: h.description,
+        phone: h.phone,
+        latitude: 8.4949, // Freetown center as default
+        longitude: -13.2317,
+        type: 'hospital',
+        distance: calculateDistance(lat, lng, 8.4949, -13.2317),
+      }));
 
-      const hospitals = (data || []).map((h: { id: string; name: string; description: string | null; phone: string; latitude: number | null; longitude: number | null }) => {
-        const facilityLat = h.latitude ?? defaultLat;
-        const facilityLng = h.longitude ?? defaultLng;
-        return {
-          id: h.id,
-          name: h.name,
-          address: h.description,
-          phone: h.phone,
-          latitude: facilityLat,
-          longitude: facilityLng,
-          type: 'hospital',
-          distance: calculateDistance(lat, lng, facilityLat, facilityLng),
-        };
-      });
-
-      return NextResponse.json({ data: hospitals });
+      return Response.json({ data: hospitals });
     } else if (type === 'pharmacy') {
       // Fetch pharmacies from pharmacies table
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabase
         .from('pharmacies')
         .select('id, user_id, name, address, latitude, longitude, phone')
         .eq('approval_status', 'approved');
 
       if (error) throw error;
 
-      const defaultLat = 8.4949;
-      const defaultLng = -13.2317;
-
-      const pharmacies = (data || []).map((p: { id: string; name: string; address: string; phone: string; latitude: number | null; longitude: number | null }) => {
-        const facilityLat = p.latitude ?? defaultLat;
-        const facilityLng = p.longitude ?? defaultLng;
-        return {
-          id: p.id,
-          name: p.name,
-          address: p.address,
-          phone: p.phone,
-          latitude: facilityLat,
-          longitude: facilityLng,
-          type: 'pharmacy',
-          distance: calculateDistance(lat, lng, facilityLat, facilityLng),
-        };
-      });
+      const pharmacies = (data || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        address: p.address,
+        phone: p.phone,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        type: 'pharmacy',
+        distance: calculateDistance(lat, lng, p.latitude, p.longitude),
+      }));
 
       // Sort by distance
-      pharmacies.sort((a: { distance?: number }, b: { distance?: number }) => (a.distance || 0) - (b.distance || 0));
+      pharmacies.sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0));
 
-      return NextResponse.json({ data: pharmacies });
+      return Response.json({ data: pharmacies });
     }
 
-    return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
+    return Response.json({ error: 'Invalid type parameter' }, { status: 400 });
   } catch (error) {
     console.error('Facilities API error:', error);
-    return NextResponse.json({ error: 'Failed to fetch facilities' }, { status: 500 });
+    return Response.json({ error: 'Failed to fetch facilities' }, { status: 500 });
   }
 }
 
