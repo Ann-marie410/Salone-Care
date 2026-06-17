@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, safeSignOut } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,45 +13,92 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [messageType, setMessageType] = useState<'error' | 'success'>('success');
 
-  async function checkApprovalAndRoute(): Promise<string | null> {
+  const [existingSession, setExistingSession] = useState<{ email?: string; role?: string } | null>(null);
+
+  async function getProfileForSession(): Promise<{ email?: string; role?: string } | null> {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return '/login';
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, approval_status')
-      .eq('id', session.user.id)
-      .single();
-
-    if (!profile) return '/login';
-
-    if (profile.role === 'doctor' && profile.approval_status !== 'approved') {
-      await supabase.auth.signOut();
-      return null;
-    }
-
-    if (profile.role === 'pharmacy' && profile.approval_status !== 'approved') {
-      await supabase.auth.signOut();
-      return null;
-    }
-
-    switch (profile.role) {
-      case 'doctor': return '/doctor/dashboard';
-      case 'pharmacy': return '/pharmacy/dashboard';
-      default: return '/appointments';
+    if (!session) return null;
+    try {
+      const res = await fetch('/api/auth/profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) return { email: session.user?.email };
+      const profile = await res.json();
+      return { email: session.user?.email, role: profile.role };
+    } catch {
+      return { email: session.user?.email };
     }
   }
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const url = await checkApprovalAndRoute();
-        if (url) router.push(url);
+  function routeByRole(role: string | undefined): string | null {
+    switch (role) {
+      case 'patient': return '/appointments';
+      case 'doctor': return '/doctor/dashboard';
+      case 'pharmacy': return '/pharmacy/dashboard';
+      default: return null;
+    }
+  }
+
+  async function checkApprovalAndRoute(): Promise<string | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+
+    let token = session.access_token;
+    try {
+      const refreshRes = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: session.refresh_token }),
+      });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        await supabase.auth.setSession(refreshData);
+        token = refreshData.access_token;
+      } else {
+        await safeSignOut();
+        return null;
       }
-    };
-    checkAuth();
-  }, [router]);
+    } catch {
+      await safeSignOut();
+      return null;
+    }
+
+    const res = await fetch('/api/auth/profile', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      await safeSignOut();
+      return null;
+    }
+
+    const profile = await res.json();
+
+    if ((profile.role === 'doctor' || profile.role === 'pharmacy') && profile.approval_status !== 'approved') {
+      return 'pending';
+    }
+
+    return routeByRole(profile.role);
+  }
+
+  useEffect(() => {
+    getProfileForSession().then((info) => {
+      if (info) setExistingSession(info);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
+  async function handleSignOut() {
+    await safeSignOut();
+    setExistingSession(null);
+    setMessage(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,20 +117,36 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-      if (error) {
-        setMessage(error.message);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.error || 'Invalid email or password');
         setMessageType('error');
+        setLoading(false);
+        return;
+      }
+
+      await supabase.auth.setSession(data);
+
+      setExistingSession(null);
+
+      const result = await checkApprovalAndRoute();
+      if (result === 'pending') {
+        setMessage("Your account is pending admin approval. You will be able to sign in once your credentials have been verified by our team.");
+        setMessageType('error');
+        await safeSignOut();
+      } else if (result) {
+        router.push(result);
       } else {
-        const url = await checkApprovalAndRoute();
-        if (url) {
-          router.push(url);
-        } else {
-          await supabase.auth.signOut();
-          setMessage("Your account is pending admin approval. You will be able to sign in once your credentials have been verified by our team.");
-          setMessageType('error');
-        }
+        setMessage('Unable to route to your dashboard');
+        setMessageType('error');
+        await safeSignOut();
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "An error occurred");
@@ -103,6 +166,31 @@ export default function LoginPage() {
       <svg className="absolute bottom-0 left-0 w-full opacity-10" viewBox="0 0 1440 120" preserveAspectRatio="none">
         <path d="M0,64L48,80C96,96,192,128,288,128C384,128,480,96,576,90.7C672,85,768,107,864,112C960,117,1056,107,1152,96C1248,85,1344,75,1392,69.3L1440,64L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z" fill="#0066cc"></path>
       </svg>
+
+      {/* Session banner */}
+      {existingSession && (
+        <div className="w-full max-w-md mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl relative z-10">
+          <p className="text-sm text-yellow-800 font-medium">
+            Already signed in{existingSession.email ? ` as ${existingSession.email}` : ''}
+          </p>
+          <div className="flex gap-2 mt-2">
+            {routeByRole(existingSession.role) && (
+              <button
+                onClick={() => router.push(routeByRole(existingSession.role)!)}
+                className="text-xs px-3 py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-semibold"
+              >
+                Go to Dashboard
+              </button>
+            )}
+            <button
+              onClick={handleSignOut}
+              className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="w-full max-w-md p-8 bg-white rounded-2xl shadow-2xl relative z-10 border border-blue-100">
         <div className="text-center mb-8">

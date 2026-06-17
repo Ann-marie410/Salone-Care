@@ -47,18 +47,6 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      if (fullName !== 'We Health Pharmacy') {
-        return NextResponse.json(
-          { error: 'Only We Health Pharmacy is authorized to register' },
-          { status: 400 }
-        );
-      }
-      if (body.pharmacyIdNumber !== 'weheath1290') {
-        return NextResponse.json(
-          { error: 'Invalid pharmacy identification number' },
-          { status: 400 }
-        );
-      }
     } else {
       return NextResponse.json(
         { error: 'Invalid role. Must be patient, doctor, or pharmacy' },
@@ -85,15 +73,15 @@ export async function POST(request: NextRequest) {
 
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({
+      .upsert({
+        id: userData.user.id,
         full_name: fullName,
         role,
         approval_status: approvalStatus,
-      })
-      .eq('id', userData.user.id);
+      });
 
     if (profileError) {
-      console.error('Profile update error:', profileError);
+      console.error('Profile upsert error:', profileError);
     }
 
     if (role === 'doctor') {

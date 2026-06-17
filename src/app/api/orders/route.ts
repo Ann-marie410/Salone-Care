@@ -6,7 +6,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { pharmacy_id, customer_name, customer_phone, notes, items, total_amount } = body;
 
+    console.log('[ORDERS API] Creating order:', { pharmacy_id, customer_name, customer_phone, items: items?.length, total_amount });
+
     if (!pharmacy_id || !customer_name || !customer_phone || !items || !items.length) {
+      console.log('[ORDERS API] Missing fields:', { pharmacy_id, customer_name, customer_phone, items: !!items, itemsLength: items?.length });
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -42,12 +45,14 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
     }));
 
+    console.log('[ORDERS API] Inserting order items:', orderItems.length);
+
     const { error: itemsError } = await supabaseAdmin
       .from('order_items')
       .insert(orderItems);
 
     if (itemsError) {
-      console.error('Order items insert error:', itemsError);
+      console.error('[ORDERS API] Order items insert error:', itemsError);
       return NextResponse.json(
         { error: 'Failed to create order items' },
         { status: 500 }
@@ -69,18 +74,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const pharmacyId = searchParams.get('pharmacy_id');
 
-    if (!pharmacyId) {
-      return NextResponse.json(
-        { error: 'pharmacy_id is required' },
-        { status: 400 }
-      );
+    let query = supabaseAdmin.from('orders').select('*');
+
+    if (pharmacyId) {
+      query = query.eq('pharmacy_id', pharmacyId);
     }
 
-    const { data: orders, error } = await supabaseAdmin
-      .from('orders')
-      .select('*')
-      .eq('pharmacy_id', pharmacyId)
-      .order('created_at', { ascending: false });
+    const { data: orders, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Fetch orders error:', error);

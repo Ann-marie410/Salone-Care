@@ -69,11 +69,10 @@ export default function DoctorDashboard() {
       const uid = session.user.id;
       setUserId(uid);
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', uid)
-        .single();
+      const res = await fetch('/api/auth/profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const profile = res.ok ? await res.json() : null;
 
       if (!profile || profile.role !== 'doctor') {
         router.push('/');
@@ -87,11 +86,10 @@ export default function DoctorDashboard() {
 
       setProfileId(profile.id);
 
-      const { data: docData } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('user_id', uid)
-        .single();
+      const docRes = await fetch('/api/doctor/profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const docData = docRes.ok ? await docRes.json() : null;
 
       if (docData) {
         setDoctor(docData);
@@ -181,12 +179,16 @@ export default function DoctorDashboard() {
     if (!doctor) return;
     setSaving(true);
 
-    const { error } = await supabase
-      .from('doctors')
-      .update({ specialization, hospital_affiliation: hospitalAffiliation, bio })
-      .eq('id', doctor.id);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
-    if (!error) {
+    const res = await fetch('/api/doctor/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ specialization, hospital_affiliation: hospitalAffiliation, bio }),
+    });
+
+    if (res.ok) {
       setAvailMsg('Profile updated!');
     } else {
       setAvailMsg('Failed to update profile');

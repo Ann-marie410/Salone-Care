@@ -29,17 +29,36 @@ export default function PharmacyDashboard() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [pharmacyName, setPharmacyName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<{ pharmacyId?: string; ordersCount?: number; debugData?: string } | null>(null);
+
+  async function loadOrders() {
+    try {
+      const res = await fetch('/api/orders');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || 'Failed to load orders');
+        return;
+      }
+      const json = await res.json();
+      const data = json.data || [];
+      setOrders(data);
+      setDebugInfo((prev) => ({ ...prev, ordersCount: data.length }));
+      setError(null);
+    } catch {
+      setError('Failed to load orders');
+    }
+  }
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push('/login'); return; }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      const res = await fetch('/api/auth/profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const profile = res.ok ? await res.json() : null;
 
       if (!profile || profile.role !== 'pharmacy') {
         router.push('/');
@@ -51,15 +70,23 @@ export default function PharmacyDashboard() {
         return;
       }
 
-      const { data: pharmacy } = await supabase
-        .from('pharmacies')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single();
+      const pharmRes = await fetch('/api/pharmacy/profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const pharmacy = pharmRes.ok ? await pharmRes.json() : null;
 
       if (pharmacy) {
         setPharmacyName(pharmacy.name);
-        loadOrders(pharmacy.id);
+        setDebugInfo({ pharmacyId: pharmacy.id });
+        console.log('[PHARMACY DASHBOARD] Pharmacy ID:', pharmacy.id);
+        await loadOrders();
+        try {
+          const debugRes = await fetch('/api/debug/orders');
+          const debugJson = await debugRes.json();
+          setDebugInfo((prev) => ({ ...prev, debugData: JSON.stringify(debugJson, null, 2) }));
+        } catch {}
+      } else {
+        setError('Could not load pharmacy profile');
       }
 
       setLoading(false);
@@ -67,12 +94,6 @@ export default function PharmacyDashboard() {
 
     init();
   }, [router]);
-
-  async function loadOrders(pharmacyId: string) {
-    const res = await fetch(`/api/orders?pharmacy_id=${pharmacyId}`);
-    const json = await res.json();
-    setOrders(json.data || []);
-  }
 
   async function updateStatus(orderId: string, status: string) {
     const res = await fetch('/api/orders', {
@@ -147,10 +168,37 @@ export default function PharmacyDashboard() {
           </div>
         </div>
 
+        {/* Debug info */}
+        {debugInfo && (
+          <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 font-mono">
+            <p><strong>Your Pharmacy ID:</strong> {debugInfo.pharmacyId}</p>
+            <p><strong>Orders found in dashboard:</strong> {debugInfo.ordersCount ?? 'loading...'}</p>
+            {debugInfo.debugData && (
+              <details>
+                <summary className="cursor-pointer text-blue-600 hover:text-blue-800">Show full debug data</summary>
+                <pre className="mt-2 p-2 bg-white border rounded max-h-96 overflow-auto whitespace-pre-wrap">{debugInfo.debugData}</pre>
+              </details>
+            )}
+          </div>
+        )}
+
         {/* Orders */}
         <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Orders</h2>
-          {orders.length === 0 ? (
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Orders</h2>
+            <button
+              onClick={loadOrders}
+              className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-sm font-semibold hover:bg-purple-200 transition"
+            >
+              ↻ Refresh
+            </button>
+          </div>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          {orders.length === 0 && !error ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">No orders yet.</p>
               <p className="text-gray-400 text-sm mt-2">Orders placed by customers will appear here.</p>

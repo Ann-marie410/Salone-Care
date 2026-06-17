@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../../lib/supabaseServer';
+import { supabaseAdmin, supabaseAnon } from '../../../../lib/supabaseServer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error: selectError } = await supabaseAdmin
+    const { data: otpRecord, error: selectError } = await supabaseAdmin
       .from('email_verifications')
       .select('*')
       .eq('email', email)
@@ -21,28 +21,23 @@ export async function POST(request: NextRequest) {
       .gte('expires_at', new Date().toISOString())
       .single();
 
-    if (selectError || !data) {
+    if (selectError || !otpRecord) {
       return NextResponse.json(
         { error: 'Invalid or expired verification code' },
         { status: 400 }
       );
     }
 
-    const { error: updateError } = await supabaseAdmin
+    await supabaseAdmin
       .from('email_verifications')
       .update({ verified: true })
-      .eq('id', data.id);
+      .eq('id', otpRecord.id);
 
-    if (updateError) {
-      console.error('Failed to mark OTP as verified:', updateError);
-      return NextResponse.json(
-        { error: 'Verification failed' },
-        { status: 500 }
-      );
-    }
-
-    const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
-    const user = userData?.users?.find(u => u.email === email);
+    const { data: userData } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    const user = userData?.users?.find((u) => u.email === email);
 
     if (user) {
       await supabaseAdmin.auth.admin.updateUserById(user.id, {
@@ -50,9 +45,36 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const role = user?.user_metadata?.role || 'patient';
+
+    let session = null;
+
+    if (user) {
+      const { data: linkData, error: linkError } =
+        await supabaseAdmin.auth.admin.generateLink({
+          type: 'magiclink',
+          email,
+        });
+
+      if (!linkError && linkData?.properties?.hashed_token) {
+        const { data: sessionData } = await supabaseAnon.auth.verifyOtp({
+          email,
+          token: linkData.properties.hashed_token,
+          type: 'magiclink',
+        });
+        session = sessionData?.session ?? null;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Email verified successfully',
+      session,
+      user: {
+        id: user?.id,
+        email,
+        role,
+      },
     });
   } catch (error) {
     console.error('Verify OTP error:', error);

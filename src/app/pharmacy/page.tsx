@@ -47,6 +47,7 @@ export default function PharmacyPage() {
   const [checkoutNote, setCheckoutNote] = useState('');
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   useEffect(() => {
     setCart(loadCart());
@@ -124,10 +125,17 @@ export default function PharmacyPage() {
   }
 
   async function placeOrder() {
-    if (!checkoutName.trim() || !checkoutPhone.trim() || cart.length === 0) return;
+    setOrderError(null);
+    if (!checkoutName.trim() || !checkoutPhone.trim() || cart.length === 0) {
+      setOrderError('Please fill in all required fields');
+      return;
+    }
 
     const pharmacyId = cart[0].medicine.pharmacy_id;
-    if (!pharmacyId) return;
+    if (!pharmacyId) {
+      setOrderError('Pharmacy information missing for this medicine');
+      return;
+    }
 
     const totalAmount = cart.reduce((s, i) => s + i.medicine.price * i.qty, 0);
 
@@ -150,8 +158,14 @@ export default function PharmacyPage() {
         }),
       });
 
-      if (!res.ok) return;
-    } catch {
+      const body = await res.json();
+
+      if (!res.ok) {
+        setOrderError(body.error || 'Failed to place order');
+        return;
+      }
+    } catch (err) {
+      setOrderError(err instanceof Error ? err.message : 'Failed to place order');
       return;
     }
 
@@ -409,6 +423,9 @@ export default function PharmacyPage() {
             {showCheckout && !orderPlaced && (
               <div className="border-t border-gray-100 px-5 py-4 space-y-3">
                 <h3 className="font-bold text-[#0F172A] text-sm">Your Details</h3>
+                {orderError && (
+                  <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{orderError}</p>
+                )}
                 <input
                   type="text"
                   value={checkoutName}

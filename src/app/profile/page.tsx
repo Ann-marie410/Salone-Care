@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase, safeSignOut } from "../../lib/supabaseClient";
 import Link from "next/link";
 
 interface UserProfile {
@@ -31,17 +31,17 @@ export default function ProfilePage() {
           return;
         }
 
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        const res = await fetch('/api/auth/profile', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
 
-        if (error) {
-          setMessage(error.message);
-          setMessageType('error');
-        } else {
+        if (res.ok) {
+          const data = await res.json();
           setProfile(data);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          setMessage(err.error || 'Failed to load profile');
+          setMessageType('error');
         }
       } catch (err) {
         setMessage(err instanceof Error ? err.message : "Failed to load profile");
@@ -55,7 +55,7 @@ export default function ProfilePage() {
   }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await safeSignOut();
     router.push('/');
   };
 
@@ -145,9 +145,17 @@ export default function ProfilePage() {
                 {profile.role === 'doctor' && isApproved && (
                   <Link
                     href="/doctor/dashboard"
-                    className="block w-full text-center px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg font-semibold"
+                    className="block w-full text-center px-4 py-3 mt-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg font-semibold"
                   >
                     Go to Doctor Dashboard
+                  </Link>
+                )}
+                {profile.role === 'pharmacy' && isApproved && (
+                  <Link
+                    href="/pharmacy/dashboard"
+                    className="block w-full text-center px-4 py-3 mt-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg font-semibold"
+                  >
+                    Go to Pharmacy Dashboard
                   </Link>
                 )}
                 {isRejected && (

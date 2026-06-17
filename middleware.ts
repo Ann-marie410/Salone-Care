@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const publicRoutes = ['/', '/login', '/signup', '/verify-otp', '/emergency', '/ai-assistant', '/locator', '/pharmacy', '/api/test-email'];
+const publicRoutes = [
+  '/', '/login', '/signup', '/verify-otp',
+  '/ai-assistant', '/locator', '/pharmacy',
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Let API routes and public routes pass through immediately
-  if (publicRoutes.includes(pathname) || pathname.startsWith('/api/')) {
+  // Let API routes and static files pass through
+  if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) {
     return NextResponse.next();
   }
 
-  // For protected pages, return next() — individual pages handle their own auth
+  // Let public routes pass through
+  if (publicRoutes.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  // Protected routes pass through - individual pages handle their own auth
   return NextResponse.next();
 }
 

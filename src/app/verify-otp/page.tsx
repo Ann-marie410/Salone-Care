@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "../../lib/supabaseClient";
 
-export default function VerifyOTPPage() {
+function VerifyOTPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -89,12 +90,24 @@ export default function VerifyOTPPage() {
         return;
       }
 
-      setMessage("Email verified successfully! Redirecting to login...");
+      if (data.session) {
+        await supabase.auth.setSession(data.session);
+      }
+
+      setMessage("Email verified successfully! Redirecting...");
       setMessageType("success");
 
+      const role = data.user?.role;
+      const redirectMap: Record<string, string> = {
+        pharmacy: "/pharmacy/dashboard",
+        doctor: "/doctor/dashboard",
+        patient: "/appointments",
+      };
+      const redirectUrl = data.session ? (redirectMap[role] || "/login") : "/login";
+
       setTimeout(() => {
-        router.push("/login");
-      }, 2000);
+        router.push(redirectUrl);
+      }, 1500);
     } catch {
       setMessage("An error occurred");
       setMessageType("error");
@@ -203,5 +216,13 @@ export default function VerifyOTPPage() {
         )}
       </form>
     </div>
+  );
+}
+
+export default function VerifyOTPPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>}>
+      <VerifyOTPContent />
+    </Suspense>
   );
 }

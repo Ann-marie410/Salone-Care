@@ -32,35 +32,27 @@ export default function AdminApprovalsPage() {
           return;
         }
 
-        // Check if user is admin
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
+        const res = await fetch('/api/admin/approvals', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
 
-        if (profile?.role !== 'admin') {
+        if (res.status === 403) {
           setMessage('You do not have permission to access this page');
           setMessageType('error');
           setTimeout(() => router.push('/'), 2000);
           return;
         }
 
-        setIsAdmin(true);
-
-        // Fetch pending approvals
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('role', ['doctor', 'pharmacy'])
-          .eq('approval_status', 'pending');
-
-        if (error) {
-          setMessage(error.message);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          setMessage(err.error || 'Failed to load approvals');
           setMessageType('error');
-        } else {
-          setApprovals(data || []);
+          return;
         }
+
+        setIsAdmin(true);
+        const data = await res.json();
+        setApprovals(data.approvals || []);
       } catch (err) {
         setMessage(err instanceof Error ? err.message : "Failed to load approvals");
         setMessageType('error');
@@ -72,50 +64,40 @@ export default function AdminApprovalsPage() {
     checkAdminAndFetch();
   }, [router]);
 
-  const handleApprove = async (userId: string, userName: string) => {
-    if (!confirm(`Approve ${userName}?`)) return;
+  async function updateApproval(userId: string, userName: string, status: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ approval_status: 'approved' })
-        .eq('id', userId);
+      const res = await fetch('/api/admin/approvals', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ userId, status }),
+      });
 
-      if (error) {
-        setMessage(error.message);
-        setMessageType('error');
-      } else {
+      if (res.ok) {
         setApprovals(approvals.filter(a => a.id !== userId));
-        setMessage(`${userName} approved successfully`);
+        setMessage(`${userName} ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
         setMessageType('success');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setMessage(err.error || `Failed to ${status}`);
+        setMessageType('error');
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to approve");
+      setMessage(err instanceof Error ? err.message : `Failed to ${status}`);
       setMessageType('error');
     }
+  }
+
+  const handleApprove = async (userId: string, userName: string) => {
+    if (!confirm(`Approve ${userName}?`)) return;
+    await updateApproval(userId, userName, 'approved');
   };
 
   const handleReject = async (userId: string, userName: string) => {
     if (!confirm(`Reject ${userName}?`)) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ approval_status: 'rejected' })
-        .eq('id', userId);
-
-      if (error) {
-        setMessage(error.message);
-        setMessageType('error');
-      } else {
-        setApprovals(approvals.filter(a => a.id !== userId));
-        setMessage(`${userName} rejected`);
-        setMessageType('success');
-      }
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to reject");
-      setMessageType('error');
-    }
+    await updateApproval(userId, userName, 'rejected');
   };
 
   if (loading) {

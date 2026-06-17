@@ -27,11 +27,10 @@ export default function AppointmentsPage() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+      const res = await fetch('/api/auth/profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const profile = res.ok ? await res.json() : null;
 
       if (profile?.role === 'doctor') {
         router.push('/doctor/dashboard');
