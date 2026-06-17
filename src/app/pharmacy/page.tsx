@@ -45,6 +45,8 @@ export default function PharmacyPage() {
   const [checkoutName, setCheckoutName] = useState('');
   const [checkoutPhone, setCheckoutPhone] = useState('');
   const [checkoutNote, setCheckoutNote] = useState('');
+  const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -149,6 +151,8 @@ export default function PharmacyPage() {
           customer_phone: checkoutPhone.trim(),
           notes: checkoutNote.trim() || null,
           total_amount: totalAmount,
+          delivery_type: deliveryType,
+          delivery_address: deliveryType === 'delivery' ? deliveryAddress.trim() : null,
           items: cart.map((i) => ({
             medicine_id: i.medicine.id,
             medicine_name: i.medicine.name,
@@ -375,7 +379,7 @@ export default function PharmacyPage() {
             </div>
 
             {/* Cart items */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+            <div className={`${showCheckout ? 'hidden' : 'flex-1'} overflow-y-auto px-5 py-4 space-y-3`}>
               {cart.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-5xl mb-3">🛒</div>
@@ -421,7 +425,7 @@ export default function PharmacyPage() {
 
             {/* Checkout form */}
             {showCheckout && !orderPlaced && (
-              <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+              <div className="border-t border-gray-100 px-5 py-4 space-y-3 overflow-y-auto flex-1">
                 <h3 className="font-bold text-[#0F172A] text-sm">Your Details</h3>
                 {orderError && (
                   <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{orderError}</p>
@@ -440,6 +444,41 @@ export default function PharmacyPage() {
                   placeholder="Phone number"
                   className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F6FFF]"
                 />
+                {/* Delivery / Pickup */}
+                <div>
+                  <p className="text-xs font-semibold text-[#64748B] mb-2">Order Type</p>
+                  <div className="flex gap-3">
+                    <label className={`flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium cursor-pointer transition ${
+                      deliveryType === 'pickup' ? 'border-[#0F6FFF] bg-[#E0F2FE] text-[#0F6FFF]' : 'border-gray-200 bg-[#F8FAFC] text-[#64748B] hover:border-gray-300'
+                    }`}>
+                      <input type="radio" name="deliveryType" value="pickup" checked={deliveryType === 'pickup'} onChange={() => setDeliveryType('pickup')} className="sr-only" />
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                      Pickup
+                    </label>
+                    <label className={`flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium cursor-pointer transition ${
+                      deliveryType === 'delivery' ? 'border-[#0F6FFF] bg-[#E0F2FE] text-[#0F6FFF]' : 'border-gray-200 bg-[#F8FAFC] text-[#64748B] hover:border-gray-300'
+                    }`}>
+                      <input type="radio" name="deliveryType" value="delivery" checked={deliveryType === 'delivery'} onChange={() => setDeliveryType('delivery')} className="sr-only" />
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2-1m3-1h10a1 1 0 001-1V6a1 1 0 00-1-1H9a1 1 0 00-1 1v10" /></svg>
+                      Delivery
+                    </label>
+                  </div>
+                </div>
+                {deliveryType === 'delivery' && (
+                  <>
+                    <textarea
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder="Delivery address"
+                      rows={2}
+                      className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0F6FFF] resize-none"
+                    />
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                      <p className="text-xs font-semibold text-blue-800 mb-1">Payment Required</p>
+                      <p className="text-sm text-blue-700">Send payment to <strong className="text-blue-900">079812331</strong> via Orange Money or Afri Money</p>
+                    </div>
+                  </>
+                )}
                 <textarea
                   value={checkoutNote}
                   onChange={(e) => setCheckoutNote(e.target.value)}
@@ -472,9 +511,10 @@ export default function PharmacyPage() {
                 <div className="text-5xl mb-3">✅</div>
                 <h3 className="text-lg font-bold text-[#0F172A] mb-1">Order Placed!</h3>
                 <p className="text-sm text-[#64748B] mb-1">We'll contact you at <strong>{checkoutPhone}</strong> to confirm.</p>
+                <p className="text-xs text-[#94A3B8] mb-1 capitalize">{deliveryType === 'delivery' ? `Delivering to: ${deliveryAddress}` : 'Ready for pickup'}</p>
                 <p className="text-xs text-[#94A3B8] mb-4">Order total: <strong>NLE {cartTotal.toFixed(2)}</strong></p>
                 <button
-                  onClick={() => { setOrderPlaced(false); setShowCheckout(false); setCheckoutName(''); setCheckoutPhone(''); setCheckoutNote(''); setCartOpen(false); }}
+                  onClick={() => { setOrderPlaced(false); setShowCheckout(false); setCheckoutName(''); setCheckoutPhone(''); setCheckoutNote(''); setDeliveryType('pickup'); setDeliveryAddress(''); setCartOpen(false); }}
                   className="px-6 py-2.5 bg-[#0F6FFF] text-white rounded-xl font-semibold hover:bg-[#0A5CD6] transition"
                 >
                   Continue Shopping

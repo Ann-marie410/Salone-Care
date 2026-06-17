@@ -67,15 +67,25 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'userId and status are required' }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin
+    const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({ approval_status: status })
       .eq('id', userId);
 
-    if (error) {
-      console.error('[ADMIN APPROVALS] Update error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (profileError) {
+      console.error('[ADMIN APPROVALS] Update error:', profileError);
+      return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
+
+    await supabaseAdmin
+      .from('doctors')
+      .update({ approval_status: status })
+      .eq('user_id', userId);
+
+    await supabaseAdmin
+      .from('pharmacies')
+      .update({ approval_status: status })
+      .eq('user_id', userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

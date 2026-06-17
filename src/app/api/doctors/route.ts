@@ -3,21 +3,35 @@ import { supabaseAdmin } from '../../../lib/supabaseServer';
 
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('doctors')
-      .select('id, user_id, specialization, hospital_affiliation, approval_status, bio, availability, profiles(full_name)')
+    const { data: profiles, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name')
+      .eq('role', 'doctor')
       .eq('approval_status', 'approved');
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
 
-    // Flatten the joined profile data for easier consumption
-    const doctors = (data || []).map((d: { profiles?: { full_name?: string }[] | null }) => ({
+    const userIds = (profiles || []).map((p: { id: string }) => p.id);
+
+    if (userIds.length === 0) {
+      return NextResponse.json({ data: [] });
+    }
+
+    const { data: doctors, error: doctorError } = await supabaseAdmin
+      .from('doctors')
+      .select('*')
+      .in('user_id', userIds);
+
+    if (doctorError) return NextResponse.json({ error: doctorError.message }, { status: 500 });
+
+    const profileMap = new Map((profiles || []).map((p: { id: string; full_name: string }) => [p.id, p.full_name]));
+
+    const result = (doctors || []).map((d: { user_id: string }) => ({
       ...d,
-      full_name: d.profiles?.[0]?.full_name || 'Unknown',
-      profiles: undefined,
+      full_name: profileMap.get(d.user_id) || 'Unknown',
     }));
 
-    return NextResponse.json({ data: doctors });
+    return NextResponse.json({ data: result });
   } catch (err: unknown) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

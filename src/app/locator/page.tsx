@@ -29,19 +29,6 @@ function formatDuration(minutes: number): string {
   return `${h}h ${m}m`;
 }
 
-function StarRating({ rating = 4.5 }: { rating?: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <svg key={star} className={`w-3 h-3 ${star <= Math.round(rating) ? 'text-amber-400' : 'text-gray-200'}`} fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-      <span className="text-[10px] text-gray-400 ml-1 font-medium">{rating}</span>
-    </div>
-  );
-}
-
 function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   useEffect(() => {
@@ -138,6 +125,12 @@ export default function LocatorPage() {
     hospital: { badge: 'bg-blue-50 text-blue-700', gradient: 'from-blue-500 to-blue-600', light: 'bg-blue-50', icon: 'text-blue-600' },
     pharmacy: { badge: 'bg-emerald-50 text-emerald-700', gradient: 'from-emerald-500 to-emerald-600', light: 'bg-emerald-50', icon: 'text-emerald-600' },
   };
+
+  const openInGoogleMaps = useCallback((facility: Facility) => {
+    if (!userLocation) return;
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${facility.latitude},${facility.longitude}&travelmode=driving`;
+    window.open(url, '_blank');
+  }, [userLocation]);
 
   const clearRoute = useCallback(() => {
     if (routeLayer.current) { routeLayer.current.remove(); routeLayer.current = null; }
@@ -255,6 +248,8 @@ export default function LocatorPage() {
         html: `<div style="width:38px;height:38px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(15,111,255,0.2);border:2.5px solid ${markerColor};font-size:17px;transition:transform 0.2s">${isHospital ? '🏥' : '💊'}</div>`,
         className: '', iconSize: [38, 38], iconAnchor: [19, 19],
       });
+      const mapLat = userLocation!.lat;
+      const mapLng = userLocation!.lng;
       const marker = L.marker([f.latitude, f.longitude], { icon })
         .addTo(map)
         .bindPopup(`
@@ -262,7 +257,8 @@ export default function LocatorPage() {
             <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#0F172A">${f.name}</div>
             <div style="font-size:12px;color:#64748B;margin-bottom:6px">${f.address || ''}</div>
             <div style="font-size:12px;color:#0F6FFF;font-weight:600;margin-bottom:8px">${f.distance ? f.distance + ' km away' : 'Distance unknown'}</div>
-            <button onclick="window.__showRoute && window.__showRoute('${f.id}')" style="display:inline-flex;align-items:center;gap:4px;background:#0F6FFF;color:white;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600">Get Directions</button>
+            <a href="https://www.google.com/maps/dir/?api=1&origin=${mapLat},${mapLng}&destination=${f.latitude},${f.longitude}&travelmode=driving" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#0F6FFF;color:white;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none">Open in Google Maps</a>
+            <button onclick="window.__showRoute && window.__showRoute('${f.id}')" style="display:inline-flex;align-items:center;gap:4px;background:white;color:#0F6FFF;padding:6px 14px;border-radius:8px;border:2px solid #0F6FFF;cursor:pointer;font-size:12px;font-weight:600;margin-left:6px">Show on Map</button>
           </div>
         `);
       marker._facilityId = f.id;
@@ -572,7 +568,6 @@ export default function LocatorPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-3 mb-2">
-                            <StarRating rating={4.0 + Math.random() * 1} />
                             {facility.distance && (
                               <span className="text-[11px] text-[#64748B] font-medium flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -601,24 +596,33 @@ export default function LocatorPage() {
                               {facility.phone}
                             </a>
                             {userLocation && (
-                              <button
-                                onClick={() => {
-                                  showRoute(facility);
-                                  const el = document.getElementById('facility-list');
-                                  if (el && window.innerWidth < 1024) {
-                                    setShowMobileMap(true);
-                                  }
-                                }}
-                                disabled={routeLoading && isRouteActive}
-                                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition active:scale-[0.97] ${
-                                  isRouteActive
-                                    ? 'bg-[#0F6FFF] text-white shadow-sm'
-                                    : 'bg-white border-2 border-gray-200 text-[#0F172A] hover:border-[#0F6FFF] hover:text-[#0F6FFF]'
-                                } disabled:opacity-50`}
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
-                                {routeLoading && isRouteActive ? 'Loading' : isRouteActive ? 'Route Active' : 'Directions'}
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => openInGoogleMaps(facility)}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0F6FFF] text-white rounded-xl text-xs font-semibold hover:bg-[#0A5CD6] transition shadow-sm active:scale-[0.97]"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+                                  Navigate
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    showRoute(facility);
+                                    const el = document.getElementById('facility-list');
+                                    if (el && window.innerWidth < 1024) {
+                                      setShowMobileMap(true);
+                                    }
+                                  }}
+                                  disabled={routeLoading && isRouteActive}
+                                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition active:scale-[0.97] ${
+                                    isRouteActive
+                                      ? 'bg-[#0F6FFF] text-white shadow-sm'
+                                      : 'bg-white border-2 border-gray-200 text-[#0F172A] hover:border-[#0F6FFF] hover:text-[#0F6FFF]'
+                                  } disabled:opacity-50`}
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                  {routeLoading && isRouteActive ? 'Loading' : isRouteActive ? 'Route Active' : 'Show on Map'}
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>

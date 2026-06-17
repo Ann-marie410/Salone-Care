@@ -4,7 +4,7 @@ import { supabaseAdmin } from '../../../lib/supabaseServer';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { pharmacy_id, customer_name, customer_phone, notes, items, total_amount } = body;
+    const { pharmacy_id, customer_name, customer_phone, notes, items, total_amount, delivery_type, delivery_address } = body;
 
     console.log('[ORDERS API] Creating order:', { pharmacy_id, customer_name, customer_phone, items: items?.length, total_amount });
 
@@ -16,23 +16,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: order, error: orderError } = await supabaseAdmin
+    const orderPayload: Record<string, unknown> = {
+      pharmacy_id,
+      customer_name,
+      customer_phone,
+      notes: notes || null,
+      total_amount,
+      status: 'pending',
+    };
+
+    if (delivery_type) orderPayload.delivery_type = delivery_type;
+    if (delivery_address) orderPayload.delivery_address = delivery_address;
+
+    let { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .insert({
-        pharmacy_id,
-        customer_name,
-        customer_phone,
-        notes: notes || null,
-        total_amount,
-        status: 'pending',
-      })
+      .insert(orderPayload)
       .select()
       .single();
+
+    if (orderError && orderError.message?.includes('column') && orderError.message?.includes('does not exist')) {
+      delete orderPayload.delivery_type;
+      delete orderPayload.delivery_address;
+
+      const fallback = await supabaseAdmin
+        .from('orders')
+        .insert(orderPayload)
+        .select()
+        .single();
+
+      order = fallback.data;
+      orderError = fallback.error as typeof orderError;
+    }
 
     if (orderError) {
       console.error('Order insert error:', orderError);
       return NextResponse.json(
-        { error: 'Failed to create order' },
+        { error: orderError.message || 'Failed to create order' },
         { status: 500 }
       );
     }
@@ -54,7 +73,7 @@ export async function POST(request: NextRequest) {
     if (itemsError) {
       console.error('[ORDERS API] Order items insert error:', itemsError);
       return NextResponse.json(
-        { error: 'Failed to create order items' },
+        { error: itemsError.message || 'Failed to create order items' },
         { status: 500 }
       );
     }
