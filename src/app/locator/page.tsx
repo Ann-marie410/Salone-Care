@@ -8,6 +8,7 @@ type Facility = {
   name: string;
   address: string;
   phone: string;
+  description: string | null;
   latitude: number;
   longitude: number;
   type: 'hospital' | 'pharmacy';
@@ -253,11 +254,13 @@ export default function LocatorPage() {
       const marker = L.marker([f.latitude, f.longitude], { icon })
         .addTo(map)
         .bindPopup(`
-          <div style="font-family:system-ui,sans-serif;min-width:210px">
+          <div style="font-family:system-ui,sans-serif;min-width:220px">
             <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#0F172A">${f.name}</div>
-            <div style="font-size:12px;color:#64748B;margin-bottom:6px">${f.address || ''}</div>
+            <div style="font-size:12px;color:#64748B;margin-bottom:4px">${f.address || ''}</div>
+            ${f.description ? `<div style="font-size:11px;color:#64748B;margin-bottom:4px;line-height:1.4">${f.description}</div>` : ''}
+            <div style="font-size:12px;color:#64748B;margin-bottom:4px">${f.phone ? '📞 ' + f.phone : ''}</div>
             <div style="font-size:12px;color:#0F6FFF;font-weight:600;margin-bottom:8px">${f.distance ? f.distance + ' km away' : 'Distance unknown'}</div>
-            <a href="https://www.google.com/maps/dir/?api=1&origin=${mapLat},${mapLng}&destination=${f.latitude},${f.longitude}&travelmode=driving" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#0F6FFF;color:white;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none">Open in Google Maps</a>
+            <a href="https://www.google.com/maps/dir/?api=1&origin=${mapLat},${mapLng}&destination=${f.latitude},${f.longitude}&travelmode=driving" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#0F6FFF;color:white;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;text-decoration:none">Get Directions</a>
             <button onclick="window.__showRoute && window.__showRoute('${f.id}')" style="display:inline-flex;align-items:center;gap:4px;background:white;color:#0F6FFF;padding:6px 14px;border-radius:8px;border:2px solid #0F6FFF;cursor:pointer;font-size:12px;font-weight:600;margin-left:6px">Show on Map</button>
           </div>
         `);
@@ -575,8 +578,11 @@ export default function LocatorPage() {
                               </span>
                             )}
                           </div>
+                          {facility.description && (
+                            <p className="text-xs text-[#64748B] mb-2 leading-relaxed">{facility.description}</p>
+                          )}
                           <p className="text-sm text-[#64748B] mb-3 truncate flex items-center gap-1.5">
-                            <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                            <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             {facility.address || 'Address not available'}
                           </p>
                           <div className="flex items-center gap-2 mb-3">
@@ -589,11 +595,11 @@ export default function LocatorPage() {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <a
-                              href={`tel:${facility.phone}`}
-                              className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r ${colors.gradient} text-white rounded-xl text-xs font-semibold hover:opacity-90 transition shadow-sm active:scale-[0.97]`}
+                              href={facility.phone ? `tel:${facility.phone}` : '#'}
+                              className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r ${colors.gradient} text-white rounded-xl text-xs font-semibold hover:opacity-90 transition shadow-sm active:scale-[0.97] ${!facility.phone ? 'opacity-50 pointer-events-none' : ''}`}
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                              {facility.phone}
+                              {facility.phone || 'Not available'}
                             </a>
                             {userLocation && (
                               <>
@@ -602,7 +608,7 @@ export default function LocatorPage() {
                                   className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0F6FFF] text-white rounded-xl text-xs font-semibold hover:bg-[#0A5CD6] transition shadow-sm active:scale-[0.97]"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
-                                  Navigate
+                                  Get Directions
                                 </button>
                                 <button
                                   onClick={() => {

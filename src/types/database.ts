@@ -107,6 +107,7 @@ export interface Medicine {
   price: number;
   in_stock: boolean;
   quantity: number | null;
+  usage: string | null;
   created_at: string;
   updated_at: string;
 }

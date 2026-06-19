@@ -8,12 +8,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type'); // 'hospital' or 'pharmacy'
+    const type = searchParams.get('type');
     const lat = parseFloat(searchParams.get('lat') || '0');
     const lng = parseFloat(searchParams.get('lng') || '0');
 
     if (type === 'hospital') {
-      // Fetch hospitals from emergency_contacts
       const { data, error } = await supabase
         .from('emergency_contacts')
         .select('*')
@@ -26,15 +25,17 @@ export async function GET(request: Request) {
         name: h.name,
         address: h.description,
         phone: h.phone,
-        latitude: 8.4949, // Freetown center as default
-        longitude: -13.2317,
+        description: h.description,
+        latitude: h.latitude || 8.4949,
+        longitude: h.longitude || -13.2317,
         type: 'hospital',
-        distance: calculateDistance(lat, lng, 8.4949, -13.2317),
+        distance: calculateDistance(lat, lng, h.latitude || 8.4949, h.longitude || -13.2317),
       }));
+
+      hospitals.sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0));
 
       return Response.json({ data: hospitals });
     } else if (type === 'pharmacy') {
-      // Fetch pharmacies from pharmacies table
       const { data, error } = await supabase
         .from('pharmacies')
         .select('id, user_id, name, address, latitude, longitude, phone')
@@ -47,13 +48,13 @@ export async function GET(request: Request) {
         name: p.name,
         address: p.address,
         phone: p.phone,
+        description: null,
         latitude: p.latitude,
         longitude: p.longitude,
         type: 'pharmacy',
         distance: calculateDistance(lat, lng, p.latitude, p.longitude),
       }));
 
-      // Sort by distance
       pharmacies.sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0));
 
       return Response.json({ data: pharmacies });
@@ -66,16 +67,15 @@ export async function GET(request: Request) {
   }
 }
 
-// Haversine formula to calculate distance between two coordinates
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in kilometers
+  const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round((R * c) * 10) / 10; // Round to 1 decimal place
+  return Math.round((R * c) * 10) / 10;
 }
 
 function toRad(deg: number): number {

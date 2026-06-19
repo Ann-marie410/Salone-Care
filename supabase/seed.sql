@@ -62,19 +62,19 @@ INSERT INTO pharmacies (id, user_id, name, address, latitude, longitude, phone, 
 -- Sample Medicines
 -- ---------------------------------------------------------------------------
 
-INSERT INTO medicines (id, pharmacy_id, name, generic_name, dosage_form, strength, in_stock, quantity, price, created_at, updated_at) VALUES
-  ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'Aspirin', 'Acetylsalicylic acid', 'tablet', '100mg', true, 50, 8.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'Amoxicillin', 'Amoxicillin', 'capsule', '500mg', true, 30, 20.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', 'Paracetamol', 'Paracetamol', 'tablet', '500mg', true, 100, 10.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000001', 'ORS (Oral Rehydration Salts)', 'Oral rehydration salts', 'powder', '20.5g sachet', true, 80, 10.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000001', 'Ibuprofen', 'Ibuprofen', 'tablet', '400mg', true, 45, 12.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000001', 'Chloroquine', 'Chloroquine phosphate', 'tablet', '250mg', true, 60, 15.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000001', 'Vitamin C Tablets', 'Ascorbic acid', 'tablet', '500mg', true, 90, 15.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000008', '30000000-0000-0000-0000-000000000001', 'Multivitamins', 'Multivitamin complex', 'tablet', '--', true, 70, 25.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000009', '30000000-0000-0000-0000-000000000001', 'Cough Syrup (Simple)', 'Dextromethorphan', 'syrup', '100ml', true, 35, 20.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000010', '30000000-0000-0000-0000-000000000001', 'Malaria Rapid Test Kit', 'Malaria antigen test', 'kit', '1 test', true, 40, 25.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000001', 'Zinc Tablets', 'Zinc sulfate', 'tablet', '20mg', true, 85, 10.00, NOW(), NOW()),
-  ('40000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000001', 'Antacids', 'Aluminium hydroxide + Magnesium hydroxide', 'tablet', '--', true, 55, 12.00, NOW(), NOW());
+INSERT INTO medicines (id, pharmacy_id, name, generic_name, dosage_form, strength, in_stock, quantity, price, usage, created_at, updated_at) VALUES
+  ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'Aspirin', 'Acetylsalicylic acid', 'tablet', '100mg', true, 50, 8.00, 'Pain relief and reduces fever; also used for heart protection in low doses', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', 'Amoxicillin', 'Amoxicillin', 'capsule', '500mg', true, 30, 20.00, 'Treats bacterial infections such as chest, ear, and throat infections', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', 'Paracetamol', 'Paracetamol', 'tablet', '500mg', true, 100, 10.00, 'Relieves pain and reduces fever', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000001', 'ORS (Oral Rehydration Salts)', 'Oral rehydration salts', 'powder', '20.5g sachet', true, 80, 10.00, 'Replaces fluids and salts lost due to diarrhea or dehydration', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000001', 'Ibuprofen', 'Ibuprofen', 'tablet', '400mg', true, 45, 12.00, 'Reduces pain, inflammation, and fever', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000001', 'Chloroquine', 'Chloroquine phosphate', 'tablet', '250mg', true, 60, 15.00, 'Treats malaria infections', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000001', 'Vitamin C Tablets', 'Ascorbic acid', 'tablet', '500mg', true, 90, 15.00, 'Boosts immunity and treats vitamin C deficiency', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000008', '30000000-0000-0000-0000-000000000001', 'Multivitamins', 'Multivitamin complex', 'tablet', '--', true, 70, 25.00, 'General health supplement providing multiple vitamins and minerals', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000009', '30000000-0000-0000-0000-000000000001', 'Cough Syrup (Simple)', 'Dextromethorphan', 'syrup', '100ml', true, 35, 20.00, 'Relieves cough by suppressing the cough reflex', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000010', '30000000-0000-0000-0000-000000000001', 'Malaria Rapid Test Kit', 'Malaria antigen test', 'kit', '1 test', true, 40, 25.00, 'Detects malaria infection quickly from a blood sample', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000001', 'Zinc Tablets', 'Zinc sulfate', 'tablet', '20mg', true, 85, 10.00, 'Supports immune system and helps wound healing', NOW(), NOW()),
+  ('40000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000001', 'Antacids', 'Aluminium hydroxide + Magnesium hydroxide', 'tablet', '--', true, 55, 12.00, 'Relieves indigestion, heartburn, and acid reflux', NOW(), NOW());
 
 -- ---------------------------------------------------------------------------
 -- Sample Appointments

@@ -13,6 +13,7 @@ type Medicine = {
   price: number;
   in_stock: boolean;
   quantity: number | null;
+  usage: string | null;
 };
 
 type CartItem = {
@@ -303,6 +304,9 @@ export default function PharmacyPage() {
                   </div>
                   {med.generic_name && (
                     <p className="text-xs text-[#94A3B8] mb-2 truncate">{med.generic_name}</p>
+                  )}
+                  {med.usage && (
+                    <p className="text-xs text-[#64748B] mb-2 leading-relaxed">{med.usage}</p>
                   )}
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">

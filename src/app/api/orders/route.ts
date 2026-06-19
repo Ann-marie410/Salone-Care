@@ -129,6 +129,54 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { order_id } = body;
+
+    if (!order_id) {
+      return NextResponse.json(
+        { error: 'order_id is required' },
+        { status: 400 }
+      );
+    }
+
+    const { error: itemsError } = await supabaseAdmin
+      .from('order_items')
+      .delete()
+      .eq('order_id', order_id);
+
+    if (itemsError) {
+      console.error('Delete order items error:', itemsError);
+      return NextResponse.json(
+        { error: 'Failed to delete order items' },
+        { status: 500 }
+      );
+    }
+
+    const { error: orderError } = await supabaseAdmin
+      .from('orders')
+      .delete()
+      .eq('id', order_id);
+
+    if (orderError) {
+      console.error('Delete order error:', orderError);
+      return NextResponse.json(
+        { error: 'Failed to delete order' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Delete order error:', error);
+    return NextResponse.json(
+      { error: 'An error occurred' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
