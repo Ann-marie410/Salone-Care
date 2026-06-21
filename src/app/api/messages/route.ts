@@ -44,3 +44,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+    const sender_id = url.searchParams.get('sender_id');
+
+    if (!id || !sender_id) {
+      return NextResponse.json({ error: 'id and sender_id are required' }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('messages')
+      .delete()
+      .eq('id', id)
+      .eq('sender_id', sender_id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}

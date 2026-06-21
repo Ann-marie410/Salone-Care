@@ -16,9 +16,11 @@ export default function LoginPage() {
   const [existingSession, setExistingSession] = useState<{ email?: string; role?: string } | null>(null);
 
   async function getProfileForSession(): Promise<{ email?: string; role?: string } | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
+    let session: import('@supabase/supabase-js').Session | null = null;
     try {
+      const result = await supabase.auth.getSession();
+      session = result.data?.session ?? null;
+      if (!session) return null;
       const res = await fetch('/api/auth/profile', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
@@ -26,7 +28,7 @@ export default function LoginPage() {
       const profile = await res.json();
       return { email: session.user?.email, role: profile.role };
     } catch {
-      return { email: session.user?.email };
+      return { email: session?.user?.email };
     }
   }
 
@@ -40,7 +42,11 @@ export default function LoginPage() {
   }
 
   async function checkApprovalAndRoute(): Promise<string | null> {
-    const { data: { session } } = await supabase.auth.getSession();
+    let session;
+    try {
+      const data = await supabase.auth.getSession();
+      session = data.data.session;
+    } catch { return null; }
     if (!session) return null;
 
     let token = session.access_token;

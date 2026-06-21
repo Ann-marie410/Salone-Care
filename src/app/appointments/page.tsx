@@ -13,6 +13,8 @@ export default function AppointmentsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
+  const [doctorAvailability, setDoctorAvailability] = useState<Record<string, string[]> | null>(null);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,29 +23,33 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/login');
+          return;
+        }
+
+        const res = await fetch('/api/auth/profile', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const profile = res.ok ? await res.json() : null;
+
+        if (profile?.role === 'doctor') {
+          router.push('/doctor/dashboard');
+          return;
+        }
+        if (profile?.role === 'pharmacy') {
+          router.push('/pharmacy/dashboard');
+          return;
+        }
+
+        setCheckingRole(false);
+        loadDoctors();
+        loadAppointments();
+      } catch {
         router.push('/login');
-        return;
       }
-
-      const res = await fetch('/api/auth/profile', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const profile = res.ok ? await res.json() : null;
-
-      if (profile?.role === 'doctor') {
-        router.push('/doctor/dashboard');
-        return;
-      }
-      if (profile?.role === 'pharmacy') {
-        router.push('/pharmacy/dashboard');
-        return;
-      }
-
-      setCheckingRole(false);
-      loadDoctors();
-      loadAppointments();
     }
 
     async function loadDoctors() {
@@ -55,14 +61,29 @@ export default function AppointmentsPage() {
     init();
   }, []);
 
-  async function loadAppointments() {
-    const user = await supabase.auth.getUser();
-    const uid = user.data.user?.id;
-    if (!uid) return;
+  useEffect(() => {
+    if (!selectedDoctor) {
+      setDoctorAvailability(null);
+      return;
+    }
+    setLoadingAvailability(true);
+    fetch(`/api/doctor/availability?doctor_id=${selectedDoctor}`)
+      .then((res) => res.json())
+      .then((json) => setDoctorAvailability(json.data?.availability ?? null))
+      .catch(() => setDoctorAvailability(null))
+      .finally(() => setLoadingAvailability(false));
+  }, [selectedDoctor]);
 
-    const res = await fetch(`/api/appointments?patient_id=${uid}`);
-    const json = await res.json();
-    setAppointments(json.data || []);
+  async function loadAppointments() {
+    try {
+      const user = await supabase.auth.getUser();
+      const uid = user.data.user?.id;
+      if (!uid) return;
+
+      const res = await fetch(`/api/appointments?patient_id=${uid}`);
+      const json = await res.json();
+      setAppointments(json.data || []);
+    } catch {}
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -98,6 +119,23 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function doctorName(doctorId: string): string {
+    return doctors.find((d) => d.id === doctorId)?.full_name || 'Doctor';
+  }
+
+  async function startConversation(doctorId: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: session.user.id, doctor_id: doctorId }),
+      }).catch(() => {});
+      router.push('/messaging');
+    } catch {}
   }
 
   if (checkingRole) {
@@ -149,6 +187,24 @@ export default function AppointmentsPage() {
                     </option>
                   ))}
                 </select>
+                {loadingAvailability && (
+                  <p className="text-sm text-gray-500 mt-2">Loading availability...</p>
+                )}
+                {doctorAvailability && !loadingAvailability && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm font-semibold text-blue-800 mb-2">Available Hours</p>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      {Object.entries(doctorAvailability).map(([day, slots]) =>
+                        slots.length > 0 ? (
+                          <div key={day} className="flex gap-2">
+                            <span className="font-medium capitalize min-w-[90px]">{day}:</span>
+                            <span>{slots.join(', ')}</span>
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -226,6 +282,12 @@ export default function AppointmentsPage() {
                         💬 <strong>Reason:</strong> {appointment.reason}
                       </p>
                     )}
+                    <button
+                      onClick={() => startConversation(appointment.doctor_id)}
+                      className="mt-2 text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                    >
+                      Message {doctorName(appointment.doctor_id)}
+                    </button>
                   </div>
                 ))}
               </div>

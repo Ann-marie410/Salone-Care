@@ -6,6 +6,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function safeSignOut() {
+  if (!supabaseUrl || !supabaseAnonKey) return;
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
@@ -16,7 +17,9 @@ export async function safeSignOut() {
       }).catch(() => {});
     }
   } catch {}
-  await supabase.auth.signOut().catch(() => {});
+  try {
+    await supabase.auth.signOut();
+  } catch {}
 }
 
 export default supabase;

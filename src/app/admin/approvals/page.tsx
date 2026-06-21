@@ -65,10 +65,9 @@ export default function AdminApprovalsPage() {
   }, [router]);
 
   async function updateApproval(userId: string, userName: string, status: string) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
       const res = await fetch('/api/admin/approvals', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },

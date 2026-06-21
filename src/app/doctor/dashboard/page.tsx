@@ -63,8 +63,9 @@ export default function DoctorDashboard() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push('/login'); return; }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { router.push('/login'); return; }
 
       const uid = session.user.id;
       setUserId(uid);
@@ -104,6 +105,9 @@ export default function DoctorDashboard() {
       }
 
       setLoading(false);
+    } catch {
+      router.push('/login');
+    }
     };
 
     init();
@@ -125,6 +129,15 @@ export default function DoctorDashboard() {
     const res = await fetch(`/api/messages?conversation_id=${convId}`);
     const json = await res.json();
     setMessages(json.data || []);
+  }
+
+  async function updateAppointmentStatus(appointmentId: string, status: string) {
+    await fetch('/api/appointments', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: appointmentId, status }),
+    });
+    if (doctor) loadAppointments(doctor.id);
   }
 
   function openConversation(convId: string) {
@@ -179,20 +192,22 @@ export default function DoctorDashboard() {
     if (!doctor) return;
     setSaving(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    const res = await fetch('/api/doctor/profile', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ specialization, hospital_affiliation: hospitalAffiliation, bio }),
-    });
+      const res = await fetch('/api/doctor/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ specialization, hospital_affiliation: hospitalAffiliation, bio }),
+      });
 
-    if (res.ok) {
-      setAvailMsg('Profile updated!');
-    } else {
-      setAvailMsg('Failed to update profile');
-    }
+      if (res.ok) {
+        setAvailMsg('Profile updated!');
+      } else {
+        setAvailMsg('Failed to update profile');
+      }
+    } catch {}
     setSaving(false);
     setTimeout(() => setAvailMsg(null), 3000);
   }
@@ -340,6 +355,22 @@ export default function DoctorDashboard() {
                         }`}>
                           {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
                         </span>
+                        {apt.status === 'pending' && (
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => updateAppointmentStatus(apt.id, 'accepted')}
+                              className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => updateAppointmentStatus(apt.id, 'rejected')}
+                              className="px-4 py-1.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

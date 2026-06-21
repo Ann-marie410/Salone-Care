@@ -52,8 +52,9 @@ export default function PharmacyDashboard() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push('/login'); return; }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { router.push('/login'); return; }
 
       const res = await fetch('/api/auth/profile', {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -90,6 +91,9 @@ export default function PharmacyDashboard() {
       }
 
       setLoading(false);
+    } catch {
+      router.push('/login');
+    }
     };
 
     init();

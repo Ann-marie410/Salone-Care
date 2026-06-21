@@ -1,8 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import type { ConversationState } from '@/lib/chat-engine';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
+
+function createInitialConversation(): ConversationState {
+  return {
+    phase: 'idle',
+    currentSymptomId: null,
+    askedQuestionIds: [],
+    answers: {},
+    nextQuestionIndex: 0,
+  };
+}
 
 export default function AIAssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -10,13 +21,17 @@ export default function AIAssistantPage() {
       role: 'assistant',
       content: `Hey there! 👋 I'm your SaloneCare Health Assistant.
 
-I can help answer your health questions, give you info about hospitals and pharmacies in Sierra Leone, and offer general wellness tips.
+I can help answer your health questions — just tell me what's bothering you.
 
-**Just a heads up:** I'm an AI — I can't diagnose or prescribe, but I'll point you in the right direction. For emergencies, call **117** right away.
+**For example:**
+– "I've been vomiting since yesterday"
+– "I have a bad headache"
+– "I have a fever and body aches"
 
-What's on your mind?`,
+⚠️ I can't diagnose or prescribe, but I'll give you helpful guidance. For emergencies, call **117**.`,
     },
   ]);
+  const [conversation, setConversation] = useState<ConversationState>(createInitialConversation());
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -35,18 +50,23 @@ What's on your mind?`,
     setLoading(true);
 
     try {
-      const history = messages.slice(Math.max(1, messages.length - 6)).map(({ role, content }) => ({ role, content }));
+      const body: { message: string; conversation?: ConversationState } = { message: userMessage };
+      if (conversation.phase !== 'idle') {
+        body.conversation = conversation;
+      }
 
       const res = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, history }),
+        body: JSON.stringify(body),
       });
 
       const json = await res.json();
       const text = json.data?.response || 'Hmm, I couldn\'t process that. Could you rephrase?';
+      const newConv: ConversationState = json.data?.conversation || createInitialConversation();
 
       setMessages((prev) => [...prev, { role: 'assistant', content: text }]);
+      setConversation(newConv);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -64,8 +84,8 @@ What's on your mind?`,
           <div className="flex items-center gap-3 mb-1">
             <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center text-xl">💬</div>
             <div>
-              <h1 className="text-xl font-bold">SaloneCare AI Assistant</h1>
-              <p className="text-sm text-white/80">Ask me anything about health in Sierra Leone</p>
+              <h1 className="text-xl font-bold">SaloneCare Health Assistant</h1>
+              <p className="text-sm text-white/80">Conversational symptom assessment & health guidance</p>
             </div>
           </div>
         </div>
@@ -106,7 +126,7 @@ What's on your mind?`,
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask me anything... (e.g., 'Where can I get malaria meds in Freetown?')"
+            placeholder="Tell me what's bothering you..."
             disabled={loading}
             className="flex-1 px-4 py-3 bg-[#F8FAFC] border border-gray-200 rounded-xl text-sm text-[#0F172A] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F6FFF] focus:border-transparent"
           />
